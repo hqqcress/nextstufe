@@ -146,7 +146,7 @@ export default function SchoolDetailScreen() {
         <Card.Body className="gap-3 p-5">
           <Typography.Heading type="h4">Official sources</Typography.Heading>
           <Typography.Paragraph color="muted">
-            School identity, type and address: {BERLIN_SCHOOL_SOURCE.label}. Programme and
+            School identity, type, address and website: {BERLIN_SCHOOL_SOURCE.label}. Programme and
             admissions must be checked separately.
           </Typography.Paragraph>
           <Button
@@ -154,7 +154,11 @@ export default function SchoolDetailScreen() {
             className="border-border border"
             onPress={() => void Linking.openURL(school.websiteUrl)}
           >
-            <Button.Label>Open school directory</Button.Label>
+            <Button.Label>
+              {school.websiteDestination === 'school'
+                ? 'Open official school website'
+                : 'Open Berlin school directory'}
+            </Button.Label>
           </Button>
           <Button
             variant="ghost"

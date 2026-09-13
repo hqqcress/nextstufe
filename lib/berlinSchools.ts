@@ -15,6 +15,7 @@ export interface BerlinSchool {
   postcode: string;
   street: string;
   schoolYear: string;
+  officialWebsiteUrl?: string;
   coordinate?: SchoolCoordinate;
 }
 
@@ -23,6 +24,7 @@ export interface RecommendedSchool extends BerlinSchool {
   programme: string;
   address: string;
   websiteUrl: string;
+  websiteDestination: 'school' | 'government';
   requirementsUrl: string;
   sourceDate: string;
   matches: string[];
@@ -41,6 +43,7 @@ interface WfsSchoolProperties {
   strasse?: unknown;
   hausnr?: unknown;
   schuljahr?: unknown;
+  internet?: unknown;
 }
 
 interface WfsGeometry {
@@ -120,6 +123,14 @@ function text(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
 }
 
+function webUrl(value: unknown): string | undefined {
+  const candidate = text(value);
+  if (!candidate) return undefined;
+
+  const normalized = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
+  return /^https?:\/\/[^\s]+$/i.test(normalized) ? normalized : undefined;
+}
+
 function toCoordinate(geometry: WfsGeometry | undefined): SchoolCoordinate | undefined {
   if (geometry?.type !== 'Point' || !Array.isArray(geometry.coordinates)) return undefined;
   const [longitude, latitude] = geometry.coordinates;
@@ -148,6 +159,7 @@ function toSchool(feature: WfsFeature): BerlinSchool | null {
     postcode: text(properties.plz),
     street: [streetName, houseNumber].filter(Boolean).join(' '),
     schoolYear: text(properties.schuljahr),
+    officialWebsiteUrl: webUrl(properties.internet),
     coordinate: toCoordinate(feature.geometry),
   };
 }
@@ -281,7 +293,8 @@ export function toRecommendedSchool(
     address: [school.street, [school.postcode, school.locality].filter(Boolean).join(' ')]
       .filter(Boolean)
       .join(', '),
-    websiteUrl: SCHOOL_DIRECTORY_URL,
+    websiteUrl: school.officialWebsiteUrl ?? SCHOOL_DIRECTORY_URL,
+    websiteDestination: school.officialWebsiteUrl ? 'school' : 'government',
     requirementsUrl: PATHWAY_REQUIREMENTS[pathwayId],
     sourceDate: school.schoolYear
       ? `Official directory · school year ${school.schoolYear}`
