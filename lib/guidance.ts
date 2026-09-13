@@ -10,14 +10,20 @@ const SOURCE = 'Berlin demo transition rule card';
 const SOURCE_DATE = 'Reviewed 13 Sep 2026';
 
 function statusFromProfile(profile: Profile): RealityStatus {
+  if (profile.transitionStatement === 'not-discussed') {
+    return 'Needs confirmation';
+  }
   if (
-    profile.transitionStatement === 'not-yet-eligible' ||
+    profile.transitionStatement === 'another-route-recommended' ||
     profile.qualification === 'intermediate' ||
     profile.qualification === 'vocational'
   ) {
     return 'Not recommended with current information';
   }
-  if (profile.transitionStatement === 'eligible' && profile.qualification === 'upper-secondary') {
+  if (
+    profile.transitionStatement === 'upper-secondary-possible' &&
+    profile.qualification === 'upper-secondary'
+  ) {
     return 'Currently open';
   }
   return 'Needs confirmation';
@@ -25,10 +31,13 @@ function statusFromProfile(profile: Profile): RealityStatus {
 
 export function realityCheck(profile: Profile): RealityCheckResult {
   const status = statusFromProfile(profile);
-  const verificationQuestion =
-    'Based on my current report, which upper-secondary transitions can the school officially confirm, and what document records that decision?';
-  const explanation =
-    status === 'Currently open'
+  const hasNotDiscussedTransition = profile.transitionStatement === 'not-discussed';
+  const verificationQuestion = hasNotDiscussedTransition
+    ? 'When will transition guidance about options after Grade 10 take place?'
+    : 'Based on my current report, which upper-secondary transitions can the school officially confirm, and what document records that decision?';
+  const explanation = hasNotDiscussedTransition
+    ? 'No transition-guidance conversation has taken place yet. This is normal in Grade 9 and is not a negative result; ask the current school when guidance will happen.'
+    : status === 'Currently open'
       ? 'The demo answers point toward an upper-secondary transition. This is not an admission decision; confirm the recorded status with the current school.'
       : status === 'Needs confirmation'
         ? 'The demo information is not conclusive. Based on the demo rule card, confirm this transition status with your current school.'
@@ -43,7 +52,7 @@ export function realityCheck(profile: Profile): RealityCheckResult {
     checks: [
       {
         id: 'transition',
-        title: 'Official transition statement',
+        title: 'Transition guidance conversation',
         status,
         explanation,
         sourceLabel: SOURCE,

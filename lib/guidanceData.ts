@@ -91,12 +91,26 @@ const unsure: Option = { value: 'unsure', label: "I'm not sure" };
 export const realityQuestions: QuestionDefinition[] = [
   {
     key: 'transitionStatement',
-    title: 'What has your school officially said about the next transition?',
+    title: 'Have you already discussed options after Grade 10 with your school?',
+    helper:
+      'This may be called an Anschlussberatung. Choose the closest answer—it is completely okay if you have not had this conversation yet. For Grade 9, “Not yet” is normal and is not a negative result.',
     options: [
-      { value: 'eligible', label: 'Eligible' },
-      { value: 'may-be-eligible', label: 'May be eligible' },
-      { value: 'not-yet-eligible', label: 'Not yet eligible' },
-      { value: 'no-statement', label: 'No statement' },
+      {
+        value: 'upper-secondary-possible',
+        label: 'Yes — the school said an upper-secondary / Abitur route is possible',
+      },
+      {
+        value: 'conditions-to-confirm',
+        label: 'Yes — it may be possible, but conditions need to be confirmed',
+      },
+      {
+        value: 'another-route-recommended',
+        label: 'Yes — the school recommended another route for now',
+      },
+      {
+        value: 'not-discussed',
+        label: 'Not yet — we have not had this conversation',
+      },
       unsure,
     ],
   },
@@ -472,7 +486,7 @@ export const demoProfile: Profile = {
   studentName: '',
   postcode: '10115',
   currentSchool: null,
-  transitionStatement: 'may-be-eligible',
+  transitionStatement: 'conditions-to-confirm',
   qualification: 'may-qualify',
   upperSecondary: 'no',
   maxTravelMinutes: 45,

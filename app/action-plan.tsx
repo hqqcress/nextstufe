@@ -9,7 +9,17 @@ import { schools } from '@/lib/guidanceData';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
-const tasks = [
+type ActionTaskLink = 'requirements' | 'website' | 'detail' | 'reality';
+
+interface ActionTask {
+  id: string;
+  bucket: string;
+  title: string;
+  why: string;
+  link: ActionTaskLink;
+}
+
+const baseTasks: ActionTask[] = [
   {
     id: 'compare',
     bucket: 'Now',
@@ -45,14 +55,27 @@ const tasks = [
     why: 'No deadline is shown because the demo record has no verified date.',
     link: 'requirements',
   },
-] as const;
+];
+
+const transitionGuidanceTask: ActionTask = {
+  id: 'transition-guidance',
+  bucket: 'Now',
+  title: 'Ask the current school when transition guidance will take place',
+  why: 'For Grade 9, not having had this conversation yet is normal. Knowing when it will happen helps the family prepare questions.',
+  link: 'reality',
+};
 
 export default function ActionPlanScreen() {
   const selectedSchoolId = useGuidanceStore((state) => state.selectedSchoolId);
+  const profile = useGuidanceStore((state) => state.profile);
   const completed = useGuidanceStore((state) => state.completedTaskIds);
   const toggleTask = useGuidanceStore((state) => state.toggleTask);
   const [accentForeground] = useThemeColor(['accent-foreground']);
   const school = schools.find((item) => item.id === selectedSchoolId);
+  const tasks =
+    profile.transitionStatement === 'not-discussed'
+      ? [transitionGuidanceTask, ...baseTasks]
+      : baseTasks;
 
   if (!school) {
     return (
@@ -67,8 +90,9 @@ export default function ActionPlanScreen() {
     );
   }
 
-  const openLink = (kind: (typeof tasks)[number]['link']) => {
+  const openLink = (kind: ActionTaskLink) => {
     if (kind === 'detail') router.push(routes.school(school.id));
+    else if (kind === 'reality') router.push(routes.reality);
     else void Linking.openURL(kind === 'website' ? school.websiteUrl : school.requirementsUrl);
   };
 
