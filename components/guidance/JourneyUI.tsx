@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { Button, Card, Typography } from 'heroui-native';
+import { Button, Card, PressableFeedback, Typography } from 'heroui-native';
 import { useRouter } from 'expo-router';
 
 import { cn } from '@/lib/utils';
@@ -78,23 +78,47 @@ export function OptionGrid({
       {options.map((option) => {
         const selected = option.value === value;
         const needsMultipleLines = option.label.length > 32;
+        if (needsMultipleLines) {
+          return (
+            <PressableFeedback
+              key={option.value}
+              animation={false}
+              onPress={() => onChange(option.value)}
+              className="w-full"
+            >
+              <PressableFeedback.Scale>
+                <View
+                  className={cn(
+                    'min-h-12 w-full justify-center rounded-xl border px-4 py-3',
+                    selected ? 'border-accent bg-accent' : 'border-border bg-surface',
+                  )}
+                >
+                  <Typography.Paragraph
+                    className={cn(
+                      'w-full leading-5',
+                      selected ? 'text-accent-foreground font-semibold' : 'text-foreground',
+                    )}
+                  >
+                    {option.label}
+                  </Typography.Paragraph>
+                </View>
+              </PressableFeedback.Scale>
+              <PressableFeedback.Ripple />
+            </PressableFeedback>
+          );
+        }
+
         return (
           <Button
             key={option.value}
             variant={selected ? 'primary' : 'ghost'}
             onPress={() => onChange(option.value)}
             className={cn(
-              'min-h-11 px-4',
-              needsMultipleLines ? 'h-auto w-full rounded-xl py-3' : 'rounded-full',
+              'min-h-11 rounded-full px-4',
               !selected && 'border-border bg-surface border',
             )}
           >
-            <Button.Label
-              numberOfLines={needsMultipleLines ? 0 : 1}
-              className={cn(needsMultipleLines && 'flex-1 text-left leading-5')}
-            >
-              {option.label}
-            </Button.Label>
+            <Button.Label numberOfLines={1}>{option.label}</Button.Label>
           </Button>
         );
       })}
