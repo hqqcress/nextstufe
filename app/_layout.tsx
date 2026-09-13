@@ -26,6 +26,10 @@ import { initPostHog } from '@/lib/posthog';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { useAppLanguage } from '@/hooks/useAppLanguage';
+import i18n from '@/lib/i18n';
+
+void i18n;
 
 /**
  * Custom ErrorBoundary that reports React render errors to the parent window (Bilt preview iframe)
@@ -55,6 +59,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const { isReady: languageReady } = useAppLanguage();
 
   // Report uncaught JS errors and unhandled promise rejections to parent (Bilt preview iframe)
   useEffect(() => {
@@ -129,12 +134,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loaded || error) {
+    if ((loaded || error) && languageReady) {
       void SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [loaded, error, languageReady]);
 
-  if (!loaded && !error) {
+  if ((!loaded && !error) || !languageReady) {
     return null;
   }
 

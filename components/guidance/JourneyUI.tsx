@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Button, Card, PressableFeedback, Typography } from 'heroui-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { BrandLogo } from '@/components/BrandLogo';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ export function JourneyScreen({
   description?: string;
   footer?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <KeyboardAvoidingView
       className="bg-background flex-1"
@@ -33,10 +35,10 @@ export function JourneyScreen({
       >
         <View className="flex-row items-center justify-between">
           <Button variant="ghost" onPress={() => goBackOrReplace(routes.home)} className="px-0">
-            <Button.Label>Back</Button.Label>
+            <Button.Label>{t('common.back')}</Button.Label>
           </Button>
           <View className="flex-row items-center gap-2">
-            <BrandLogo width={42} height={34} label="Wegweisser home" />
+            <BrandLogo width={42} height={34} label={t('common.home')} />
             <Typography.Paragraph className="text-foreground font-semibold">
               Wegweisser
             </Typography.Paragraph>
@@ -161,6 +163,7 @@ export function QuestionCard({
 }
 
 export function StatusPill({ status }: { status: RealityStatus }) {
+  const { t } = useTranslation();
   const tone =
     status === 'Currently open'
       ? 'bg-success-soft text-success-soft-foreground'
@@ -170,7 +173,11 @@ export function StatusPill({ status }: { status: RealityStatus }) {
   return (
     <View className={cn('self-start rounded-full px-3 py-1.5', tone)}>
       <Typography.Paragraph type="body-sm" className="font-semibold">
-        {status}
+        {status === 'Currently open'
+          ? t('status.open')
+          : status === 'Needs confirmation'
+            ? t('status.needsConfirmation')
+            : t('status.notRecommended')}
       </Typography.Paragraph>
     </View>
   );

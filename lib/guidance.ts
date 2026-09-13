@@ -1,7 +1,8 @@
 import type { PathwayCard, Profile, RealityCheckResult, RealityStatus } from './guidanceData';
+import i18n from './i18n';
 
-const SOURCE = 'Berlin demo transition rule card';
-const SOURCE_DATE = 'Reviewed 13 Sep 2026';
+const guidanceText = (key: string, options?: Record<string, unknown>) =>
+  i18n.t(`guidance.${key}`, options);
 
 function statusFromProfile(profile: Profile): RealityStatus {
   if (profile.transitionStatement === 'not-discussed') {
@@ -27,62 +28,62 @@ export function realityCheck(profile: Profile): RealityCheckResult {
   const hasTransitionAnswers = Boolean(profile.transitionStatement && profile.qualification);
   const status = statusFromProfile(profile);
   const hasNotDiscussedTransition = profile.transitionStatement === 'not-discussed';
-  const verificationQuestion = hasNotDiscussedTransition
-    ? 'When will transition guidance about options after Grade 10 take place?'
-    : 'Based on my current report, which upper-secondary transitions can the school officially confirm, and what document records that decision?';
+  const verificationQuestion = guidanceText(
+    hasNotDiscussedTransition ? 'verificationNotDiscussed' : 'verification',
+  );
   const explanation = !hasTransitionAnswers
-    ? 'Answer the transition and report questions to create a reality-check summary.'
+    ? guidanceText('incomplete')
     : hasNotDiscussedTransition
-      ? 'No transition-guidance conversation has taken place yet. This is normal in Grade 9 and is not a negative result; ask the current school when guidance will happen.'
+      ? guidanceText('notDiscussed')
       : status === 'Currently open'
-        ? 'The demo answers point toward an upper-secondary transition. This is not an admission decision; confirm the recorded status with the current school.'
+        ? guidanceText('open')
         : status === 'Needs confirmation'
-          ? 'The demo information is not conclusive. Based on the demo rule card, confirm this transition status with your current school.'
-          : 'The current demo information does not support recommending a direct upper-secondary transition yet. Ask the current school about requirements and alternative routes.';
+          ? guidanceText('confirm')
+          : guidanceText('blocked');
+  const source = guidanceText('source');
+  const reviewed = guidanceText('reviewed');
 
   return {
     status,
     explanation,
-    sourceLabel: SOURCE,
-    sourceDate: SOURCE_DATE,
+    sourceLabel: source,
+    sourceDate: reviewed,
     verificationQuestion,
     checks: [
       {
         id: 'transition',
-        title: 'Transition guidance conversation',
+        title: guidanceText('transitionTitle'),
         status,
         explanation,
-        sourceLabel: SOURCE,
-        sourceDate: SOURCE_DATE,
+        sourceLabel: source,
+        sourceDate: reviewed,
         verificationQuestion: status === 'Currently open' ? undefined : verificationQuestion,
       },
       {
         id: 'programme',
-        title: 'Current-school connection',
+        title: guidanceText('programmeTitle'),
         status: profile.upperSecondary === 'yes' ? 'Currently open' : 'Needs confirmation',
         explanation:
           profile.upperSecondary === 'yes'
-            ? 'The profile says the current school has its own or a cooperating upper-secondary programme.'
+            ? guidanceText('programmeYes')
             : profile.upperSecondary
-              ? 'A connected programme is not confirmed, so ask which partner routes the school supports.'
-              : 'Answer the current-school programme question to complete this check.',
-        sourceLabel: 'Family profile answer',
-        sourceDate: 'Current session',
+              ? guidanceText('programmeNo')
+              : guidanceText('programmeEmpty'),
+        sourceLabel: guidanceText('familyAnswer'),
+        sourceDate: guidanceText('currentSession'),
         verificationQuestion:
-          profile.upperSecondary === 'yes'
-            ? undefined
-            : 'Which upper-secondary schools formally cooperate with this school, if any?',
+          profile.upperSecondary === 'yes' ? undefined : guidanceText('programmeQuestion'),
       },
       {
         id: 'travel',
-        title: 'Travel preference',
+        title: guidanceText('travelTitle'),
         status: profile.maxTravelMinutes === null ? 'Needs confirmation' : 'Currently open',
         explanation:
           profile.maxTravelMinutes === null
-            ? 'Choose a maximum one-way travel time to use as a preference.'
-            : `Options will be filtered using a maximum one-way travel preference of ${profile.maxTravelMinutes} minutes. Estimates must be checked before applying.`,
-        sourceLabel: 'Family profile answer',
-        sourceDate: 'Current session',
+            ? guidanceText('travelEmpty')
+            : guidanceText('travel', { minutes: profile.maxTravelMinutes }),
+        sourceLabel: guidanceText('familyAnswer'),
+        sourceDate: guidanceText('currentSession'),
       },
     ],
   };
@@ -121,14 +122,18 @@ export const guidanceService: GuidanceService = {
   async generateGuidance(profile, reality, pathwayCards) {
     const interest =
       profile.student.interests === 'unsure'
-        ? 'keeping interests open'
-        : profile.student.interests || 'open interests';
-    const parentHope = profile.parent.hope || 'keeping options open';
+        ? i18n.t('pathways.keepingOpen')
+        : profile.student.interests
+          ? i18n.t(`questions.student.interests.options.${profile.student.interests}`)
+          : i18n.t('pathways.openInterests');
+    const parentHope = profile.parent.hope
+      ? i18n.t(`questions.parent.hope.options.${profile.parent.hope}`)
+      : i18n.t('pathways.keepingOptionsOpen');
     return {
       pathways: pathwayCards.map((pathway) => ({
         ...pathway,
         status: pathwayStatus(pathway, reality.status),
-        whyFit: `${pathway.name} connects the student’s ${interest} preference with the parent priority of ${parentHope}.`,
+        whyFit: i18n.t('pathways.fit', { pathway: pathway.name, interest, hope: parentHope }),
       })),
       schoolMatches: [],
       potentialMismatches: [],

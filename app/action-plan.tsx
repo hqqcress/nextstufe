@@ -1,6 +1,6 @@
 import { Button, Card, Checkbox, Spinner, Typography } from 'heroui-native';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { JourneyScreen } from '@/components/guidance/JourneyUI';
@@ -9,6 +9,7 @@ import { getSchoolPathway, toRecommendedSchool, type RecommendedSchool } from '@
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
+type Translate = ReturnType<typeof useTranslation>['t'];
 interface ActionTask {
   id: string;
   title: string;
@@ -17,55 +18,52 @@ interface ActionTask {
   linkLabel: string;
   route: ReturnType<typeof routes.email> | '/reality';
 }
-
-function buildActions(school: RecommendedSchool, needsTransitionGuidance: boolean): ActionTask[] {
+function buildActions(
+  school: RecommendedSchool,
+  needsGuidance: boolean,
+  t: Translate,
+): ActionTask[] {
   const actions: ActionTask[] = [];
-
-  if (needsTransitionGuidance) {
+  if (needsGuidance)
     actions.push({
       id: 'ask-transition-guidance',
-      title: 'Ask the current school when transition guidance will take place.',
-      reason:
-        'For Grade 9, not having had this conversation yet can be normal. Asking now clarifies the next step without treating it as a negative result.',
-      owner: 'Parent and student',
-      linkLabel: 'Review reality check',
+      title: t('plan.transition.title'),
+      reason: t('plan.transition.reason'),
+      owner: t('plan.owners.both'),
+      linkLabel: t('plan.transition.link'),
       route: '/reality',
     });
-  }
-
   actions.push(
     {
       id: 'contact-school',
-      title: `Contact ${school.name}`,
-      reason:
-        'Confirm current programme availability and admission directly; the official directory does not publish or guarantee these details.',
-      owner: 'Parent',
-      linkLabel: 'Open email draft',
+      title: t('plan.contact.title', { school: school.name }),
+      reason: t('plan.contact.reason'),
+      owner: t('plan.owners.parent'),
+      linkLabel: t('plan.contact.link'),
       route: routes.email(school.id),
     },
     {
       id: 'visit-school',
-      title: `Plan a visit to ${school.name}`,
-      reason: `Use the visit to verify the environment and route to ${school.locality || school.borough}.`,
-      owner: 'Student',
-      linkLabel: 'Review school',
+      title: t('plan.visit.title', { school: school.name }),
+      reason: t('plan.visit.reason', { place: school.locality || school.borough }),
+      owner: t('plan.owners.student'),
+      linkLabel: t('plan.visit.link'),
       route: routes.school(school.id),
     },
     {
       id: 'confirm-requirements',
-      title: 'Confirm pathway requirements',
-      reason:
-        'Ask the current school and the recommended school which certificates, grades, deadlines, and documents apply to this student.',
-      owner: 'Parent and student',
-      linkLabel: 'Review school questions',
+      title: t('plan.requirements.title'),
+      reason: t('plan.requirements.reason'),
+      owner: t('plan.owners.both'),
+      linkLabel: t('plan.requirements.link'),
       route: routes.school(school.id),
     },
   );
-
   return actions;
 }
 
 export default function ActionPlanScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const profile = useGuidanceStore((state) => state.profile);
   const selectedSchoolId = useGuidanceStore((state) => state.selectedSchoolId);
@@ -73,22 +71,15 @@ export default function ActionPlanScreen() {
   const completedTaskIds = useGuidanceStore((state) => state.completedTaskIds);
   const toggleTask = useGuidanceStore((state) => state.toggleTask);
   const { schools, status, retry } = useBerlinSchoolDirectory();
-  const schoolRecord = schools.find((item) => item.id === selectedSchoolId);
-  const pathwayId = schoolRecord
-    ? (selectedPathwayId ?? getSchoolPathway(schoolRecord))
-    : undefined;
-  const school =
-    schoolRecord && pathwayId ? toRecommendedSchool(schoolRecord, pathwayId, profile) : undefined;
-  const needsTransitionGuidance = profile.transitionStatement === 'not-discussed';
-  const actions = useMemo(
-    () => (school ? buildActions(school, needsTransitionGuidance) : []),
-    [needsTransitionGuidance, school],
-  );
+  const record = schools.find((item) => item.id === selectedSchoolId);
+  const pathwayId = record ? (selectedPathwayId ?? getSchoolPathway(record)) : undefined;
+  const school = record && pathwayId ? toRecommendedSchool(record, pathwayId, profile) : undefined;
+  const needsGuidance = profile.transitionStatement === 'not-discussed';
+  const actions = school ? buildActions(school, needsGuidance, t) : [];
   const completed = actions.filter((task) => completedTaskIds.includes(task.id)).length;
-
-  if (status === 'loading') {
+  if (status === 'loading')
     return (
-      <JourneyScreen title="Building your action plan">
+      <JourneyScreen title={t('plan.loading')}>
         <Card>
           <Card.Body className="items-center gap-3 p-6">
             <Spinner />
@@ -96,44 +87,35 @@ export default function ActionPlanScreen() {
         </Card>
       </JourneyScreen>
     );
-  }
-
-  if (status === 'error') {
+  if (status === 'error')
     return (
-      <JourneyScreen
-        title="The official school directory is unavailable"
-        description="Your selected school cannot be verified right now."
-      >
+      <JourneyScreen title={t('common.directoryUnavailable')} description={t('plan.errorText')}>
         <Button onPress={retry}>
-          <Button.Label>Try again</Button.Label>
+          <Button.Label>{t('common.tryAgain')}</Button.Label>
         </Button>
       </JourneyScreen>
     );
-  }
-
-  if (!school) {
+  if (!school)
     return (
       <JourneyScreen
-        eyebrow="One step needed"
-        title="Choose a real school first"
-        description="Select a school from the official Berlin directory so the plan can use the correct name, address, and follow-up questions."
+        eyebrow={t('plan.needed')}
+        title={t('plan.chooseFirst')}
+        description={t('plan.chooseText')}
         footer={
           <Button onPress={() => router.replace(routes.pathways)}>
-            <Button.Label>Choose a pathway and school</Button.Label>
+            <Button.Label>{t('plan.choose')}</Button.Label>
           </Button>
         }
       />
     );
-  }
-
   return (
     <JourneyScreen
-      eyebrow="Your next steps"
-      title="A practical action plan"
-      description={`${completed} of ${actions.length} complete. This plan is saved for the current session.`}
+      eyebrow={t('plan.eyebrow')}
+      title={t('plan.title')}
+      description={t('plan.progress', { completed, total: actions.length })}
       footer={
         <Button onPress={() => router.replace(routes.home)}>
-          <Button.Label>Return to overview</Button.Label>
+          <Button.Label>{t('plan.return')}</Button.Label>
         </Button>
       }
     >
@@ -143,39 +125,32 @@ export default function ActionPlanScreen() {
             type="body-sm"
             className="text-accent font-semibold tracking-wide uppercase"
           >
-            Selected official school
+            {t('plan.selected')}
           </Typography.Paragraph>
           <Typography.Heading type="h3">{school.name}</Typography.Heading>
           <Typography.Paragraph color="muted">{school.address}</Typography.Paragraph>
         </Card.Body>
       </Card>
-
       <View className="gap-4">
         {actions.map((task, index) => {
-          const isDone = completedTaskIds.includes(task.id);
+          const done = completedTaskIds.includes(task.id);
           return (
-            <Card
-              key={task.id}
-              className={isDone ? 'border-success/40 bg-success-soft border' : ''}
-            >
+            <Card key={task.id} className={done ? 'border-success/40 bg-success-soft border' : ''}>
               <Card.Body className="gap-4 p-5">
                 <View className="flex-row items-start gap-4">
                   <Checkbox
-                    isSelected={isDone}
+                    isSelected={done}
                     onSelectedChange={() => toggleTask(task.id)}
-                    accessibilityLabel={`Mark ${task.title} complete`}
+                    accessibilityLabel={t('plan.markComplete', { title: task.title })}
                   />
                   <View className="min-w-0 flex-1 gap-2">
                     <Typography.Paragraph
                       type="body-sm"
                       className="text-accent font-semibold tracking-wide uppercase"
                     >
-                      Step {index + 1} · {task.owner}
+                      {t('plan.stepOwner', { step: index + 1, owner: task.owner })}
                     </Typography.Paragraph>
-                    <Typography.Heading
-                      type="h4"
-                      className={isDone ? 'line-through opacity-60' : ''}
-                    >
+                    <Typography.Heading type="h4" className={done ? 'line-through opacity-60' : ''}>
                       {task.title}
                     </Typography.Heading>
                     <Typography.Paragraph color="muted">{task.reason}</Typography.Paragraph>
@@ -189,16 +164,12 @@ export default function ActionPlanScreen() {
           );
         })}
       </View>
-
       <Card className="bg-muted/40">
         <Card.Body className="gap-2 p-4">
           <Typography.Paragraph type="body-sm" className="font-semibold">
-            Important boundary
+            {t('plan.boundary')}
           </Typography.Paragraph>
-          <Typography.Paragraph color="muted">
-            The shortlist and plan support research. They do not determine eligibility, admission,
-            programme availability, or deadlines.
-          </Typography.Paragraph>
+          <Typography.Paragraph color="muted">{t('plan.boundaryText')}</Typography.Paragraph>
         </Card.Body>
       </Card>
     </JourneyScreen>

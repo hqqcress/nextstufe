@@ -1,10 +1,12 @@
 import { Home } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useTranslation } from 'react-i18next';
 import { useUniwind } from 'uniwind';
 
 export default function TabLayout() {
   const { theme } = useUniwind();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -18,7 +20,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: t('common.home'),
             tabBarIcon: ({ color, size }) => <Home color={color} size={size ?? 24} />,
           }}
         />

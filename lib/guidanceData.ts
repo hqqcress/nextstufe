@@ -1,5 +1,6 @@
 import type { LatLng } from '@/components/MapView';
 import type { BerlinSchool } from '@/lib/berlinSchools';
+import i18n from '@/lib/i18n';
 
 export type RealityStatus =
   | 'Currently open'
@@ -90,7 +91,9 @@ export interface QuestionDefinition<K extends string = string> {
 
 const unsure: Option = { value: 'unsure', label: "I'm not sure" };
 
-export const realityQuestions: QuestionDefinition[] = [
+export const realityQuestions: QuestionDefinition<
+  'transitionStatement' | 'qualification' | 'upperSecondary' | 'maxTravelMinutes'
+>[] = [
   {
     key: 'transitionStatement',
     title: 'Have you already discussed options after Grade 10 with your school?',
@@ -279,6 +282,52 @@ export const pathways: PathwayCard[] = [
     resourceUrl: 'https://www.berlin.de/sen/bildung/schule-und-beruf/duale-ausbildung/',
   },
 ];
+
+function localizeQuestions<K extends string>(
+  group: 'reality' | 'student' | 'parent',
+  questions: QuestionDefinition<K>[],
+): QuestionDefinition<K>[] {
+  return questions.map((question) => ({
+    ...question,
+    title: i18n.t(`questions.${group}.${question.key}.title`),
+    helper: question.helper ? i18n.t(`questions.${group}.${question.key}.helper`) : undefined,
+    options: question.options.map((option) => ({
+      ...option,
+      label:
+        question.key === 'maxTravelMinutes' || question.key === 'commute'
+          ? i18n.t('common.minutes', { count: Number(option.value) })
+          : i18n.t(`questions.${group}.${question.key}.options.${option.value}`),
+    })),
+  }));
+}
+
+export function getRealityQuestions(): QuestionDefinition<
+  'transitionStatement' | 'qualification' | 'upperSecondary' | 'maxTravelMinutes'
+>[] {
+  return localizeQuestions('reality', realityQuestions);
+}
+
+export function getStudentQuestions(): QuestionDefinition<keyof Profile['student']>[] {
+  return localizeQuestions('student', studentQuestions);
+}
+
+export function getParentQuestions(): QuestionDefinition<keyof Profile['parent']>[] {
+  return localizeQuestions('parent', parentQuestions);
+}
+
+export function getPathways(language: 'de' | 'en'): PathwayCard[] {
+  const t = i18n.getFixedT(language);
+  return pathways.map((pathway) => ({
+    ...pathway,
+    name: t(`pathways.${pathway.id}.name`),
+    focus: t(`pathways.${pathway.id}.focus`),
+    clarification: t(`pathways.${pathway.id}.clarification`),
+  }));
+}
+
+export function answerLabel(group: 'student' | 'parent', key: string, value: string): string {
+  return i18n.t(`questions.${group}.${key}.options.${value}`);
+}
 
 const directoryUrl = 'https://www.bildung.berlin.de/Schulverzeichnis/';
 

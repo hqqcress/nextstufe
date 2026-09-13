@@ -1,5 +1,6 @@
 import { Button, Card, Spinner, Typography } from 'heroui-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Linking, View } from 'react-native';
 
 import { JourneyScreen } from '@/components/guidance/JourneyUI';
@@ -7,8 +8,11 @@ import { useBerlinSchoolDirectory } from '@/hooks/useBerlinSchoolDirectory';
 import { BERLIN_SCHOOL_SOURCE, getSchoolPathway, toRecommendedSchool } from '@/lib/berlinSchools';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
+import { useI18nData } from '@/lib/useI18nData';
 
 export default function SchoolDetailScreen() {
+  const { t } = useTranslation();
+  const { recommendedSchoolText } = useI18nData();
   const router = useRouter();
   const params = useLocalSearchParams<{ schoolId?: string }>();
   const profile = useGuidanceStore((state) => state.profile);
@@ -22,9 +26,9 @@ export default function SchoolDetailScreen() {
   const school =
     schoolRecord && pathwayId ? toRecommendedSchool(schoolRecord, pathwayId, profile) : undefined;
 
-  if (status === 'loading') {
+  if (status === 'loading')
     return (
-      <JourneyScreen title="Loading school details">
+      <JourneyScreen title={t('schoolDetail.loading')}>
         <Card>
           <Card.Body className="items-center gap-3 p-6">
             <Spinner />
@@ -32,40 +36,36 @@ export default function SchoolDetailScreen() {
         </Card>
       </JourneyScreen>
     );
-  }
-
-  if (status === 'error') {
+  if (status === 'error')
     return (
       <JourneyScreen
-        title="The Berlin school directory is unavailable"
-        description="We cannot show reliable school details without the source data."
+        title={t('common.directoryUnavailable')}
+        description={t('schoolDetail.errorText')}
       >
         <Button onPress={retry}>
-          <Button.Label>Try again</Button.Label>
+          <Button.Label>{t('common.tryAgain')}</Button.Label>
         </Button>
       </JourneyScreen>
     );
-  }
-
-  if (!school || !pathwayId) {
+  if (!school || !pathwayId)
     return (
       <JourneyScreen
-        title="School not found"
-        description="This school is not available in the current official Berlin directory."
+        title={t('common.schoolNotFound')}
+        description={t('schoolDetail.notFoundText')}
         footer={
           <Button onPress={() => router.replace(routes.pathways)}>
-            <Button.Label>Back to pathways</Button.Label>
+            <Button.Label>{t('common.backToPathways')}</Button.Label>
           </Button>
         }
       />
     );
-  }
 
+  const text = recommendedSchoolText(school);
   return (
     <JourneyScreen
-      eyebrow={`Official school no. ${school.id}`}
+      eyebrow={t('schoolDetail.eyebrow', { id: school.id })}
       title={school.name}
-      description={`${school.programme}. The pathway match is inferred from the official school classification and must be confirmed with the school.`}
+      description={t('schoolDetail.description', { programme: text.programme })}
       footer={
         <Button
           onPress={() => {
@@ -73,7 +73,7 @@ export default function SchoolDetailScreen() {
             router.push(routes.email(school.id));
           }}
         >
-          <Button.Label>Draft a question email</Button.Label>
+          <Button.Label>{t('schoolDetail.draft')}</Button.Label>
         </Button>
       }
     >
@@ -85,13 +85,13 @@ export default function SchoolDetailScreen() {
                 type="body-sm"
                 className="text-success-soft-foreground font-semibold"
               >
-                Official directory record
+                {t('schoolDetail.officialRecord')}
               </Typography.Paragraph>
             </View>
           </View>
           <View className="gap-1">
             <Typography.Paragraph type="body-sm" color="muted">
-              School type
+              {t('schoolDetail.schoolType')}
             </Typography.Paragraph>
             <Typography.Paragraph>
               {school.schoolType || school.schoolCategory}
@@ -99,55 +99,36 @@ export default function SchoolDetailScreen() {
           </View>
           <View className="gap-1">
             <Typography.Paragraph type="body-sm" color="muted">
-              Address
+              {t('schoolDetail.address')}
             </Typography.Paragraph>
             <Typography.Paragraph>{school.address}</Typography.Paragraph>
           </View>
           <Typography.Paragraph type="body-sm" color="muted">
-            {school.sourceDate}
+            {text.sourceDate}
           </Typography.Paragraph>
         </Card.Body>
       </Card>
-
-      <Card>
-        <Card.Body className="gap-3 p-5">
-          <Typography.Heading type="h3">Why it appears in this shortlist</Typography.Heading>
-          {school.matches.map((item) => (
-            <Typography.Paragraph key={item} color="muted">
-              • {item}
-            </Typography.Paragraph>
-          ))}
-        </Card.Body>
-      </Card>
-
-      <Card>
-        <Card.Body className="gap-3 p-5">
-          <Typography.Heading type="h3">What the directory cannot confirm</Typography.Heading>
-          {school.mismatches.map((item) => (
-            <Typography.Paragraph key={item} color="muted">
-              • {item}
-            </Typography.Paragraph>
-          ))}
-        </Card.Body>
-      </Card>
-
-      <Card>
-        <Card.Body className="gap-3 p-5">
-          <Typography.Heading type="h3">Questions to ask this school</Typography.Heading>
-          {school.missingInformation.map((item) => (
-            <Typography.Paragraph key={item} color="muted">
-              • {item}
-            </Typography.Paragraph>
-          ))}
-        </Card.Body>
-      </Card>
-
+      {[
+        { title: t('schoolDetail.why'), items: text.matches },
+        { title: t('schoolDetail.cannotConfirm'), items: text.mismatches },
+        { title: t('schoolDetail.questions'), items: text.missingInformation },
+      ].map(({ title, items }) => (
+        <Card key={title}>
+          <Card.Body className="gap-3 p-5">
+            <Typography.Heading type="h3">{title}</Typography.Heading>
+            {items.map((item) => (
+              <Typography.Paragraph key={item} color="muted">
+                • {item}
+              </Typography.Paragraph>
+            ))}
+          </Card.Body>
+        </Card>
+      ))}
       <Card className="bg-muted/30">
         <Card.Body className="gap-3 p-5">
-          <Typography.Heading type="h4">Official sources</Typography.Heading>
+          <Typography.Heading type="h4">{t('schoolDetail.officialSources')}</Typography.Heading>
           <Typography.Paragraph color="muted">
-            School identity, type, address and website: {BERLIN_SCHOOL_SOURCE.label}. Programme and
-            admissions must be checked separately.
+            {t('schoolDetail.sourcesText', { source: BERLIN_SCHOOL_SOURCE.label })}
           </Typography.Paragraph>
           <Button
             variant="ghost"
@@ -155,9 +136,11 @@ export default function SchoolDetailScreen() {
             onPress={() => void Linking.openURL(school.websiteUrl)}
           >
             <Button.Label>
-              {school.websiteDestination === 'school'
-                ? 'Open official school website'
-                : 'Open Berlin school directory'}
+              {t(
+                school.websiteDestination === 'school'
+                  ? 'schoolDetail.openSchool'
+                  : 'schoolDetail.openDirectory',
+              )}
             </Button.Label>
           </Button>
           <Button
@@ -165,7 +148,7 @@ export default function SchoolDetailScreen() {
             className="border-border border"
             onPress={() => void Linking.openURL(school.requirementsUrl)}
           >
-            <Button.Label>Open pathway guidance</Button.Label>
+            <Button.Label>{t('schoolDetail.openGuidance')}</Button.Label>
           </Button>
         </Card.Body>
       </Card>

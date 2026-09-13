@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, Text, UIManager, View } from 'react-native';
 import RNMapView, {
   Circle,
@@ -197,6 +198,7 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   ref,
 ) {
   const nativeMapRef = useRef<RNMapView>(null);
+  const { t } = useTranslation();
 
   useImperativeHandle(
     ref,
@@ -239,11 +241,10 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
             textAlign: 'center',
           }}
         >
-          Map unavailable in this runtime
+          {t('map.unavailable')}
         </Text>
         <Text style={{ color: '#64748b', fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-          This screen needs the native react-native-maps view. Use a development build or a runtime
-          that includes it.
+          {t('map.nativeNeeded')}
         </Text>
       </View>
     );

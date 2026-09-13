@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   Card,
@@ -25,11 +26,12 @@ import {
   type BerlinSchool,
 } from '@/lib/berlinSchools';
 import { realityCheck } from '@/lib/guidance';
-import { realityQuestions } from '@/lib/guidanceData';
+import { getRealityQuestions } from '@/lib/guidanceData';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
 export default function RealityScreen() {
+  const { t } = useTranslation();
   const profile = useGuidanceStore((state) => state.profile);
   const setProfileField = useGuidanceStore((state) => state.setProfileField);
   const [schoolQuery, setSchoolQuery] = useState(profile.currentSchool?.name ?? '');
@@ -38,6 +40,7 @@ export default function RealityScreen() {
   const [schoolLoadError, setSchoolLoadError] = useState(false);
   const [accent] = useThemeColor(['accent']);
   const result = realityCheck(profile);
+  const realityQuestions = getRealityQuestions();
   const schoolSuggestions = useMemo(
     () => findBerlinSchools(schools, schoolQuery),
     [schoolQuery, schools],
@@ -86,42 +89,40 @@ export default function RealityScreen() {
 
   return (
     <JourneyScreen
-      eyebrow="Step 1 of 4"
-      title="Reality check"
-      description="Use only information the current school has actually stated. You can choose ‘I’m not sure.’"
+      eyebrow={t('reality.eyebrow')}
+      title={t('reality.title')}
+      description={t('reality.description')}
       footer={
         <Button variant="primary" onPress={() => router.push(routes.student)}>
-          <Button.Label>Continue to student priorities</Button.Label>
+          <Button.Label>{t('reality.continue')}</Button.Label>
         </Button>
       }
     >
       <QuestionCard
         index={1}
-        title="Which school do you attend now?"
-        helper="Type at least two letters, then choose the matching school from Berlin’s official directory."
+        title={t('reality.schoolQuestion')}
+        helper={t('reality.schoolHelper')}
       >
         <View className="gap-3">
           <SearchField value={schoolQuery} onChange={updateSchoolQuery}>
-            <Label>Current school</Label>
+            <Label>{t('reality.currentSchool')}</Label>
             <SearchField.Group>
               <SearchField.SearchIcon />
               <SearchField.Input
-                placeholder="Start typing a school name"
+                placeholder={t('reality.searchPlaceholder')}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
               <SearchField.ClearButton />
             </SearchField.Group>
-            <Description>
-              Search by school name, Berlin school number, postcode, or locality.
-            </Description>
+            <Description>{t('reality.searchHelp')}</Description>
           </SearchField>
 
           {isLoadingSchools ? (
             <View className="flex-row items-center gap-3 py-2">
               <ActivityIndicator color={accent} />
               <Typography.Paragraph type="body-sm" color="muted">
-                Loading the official Berlin school directory…
+                {t('reality.loading')}
               </Typography.Paragraph>
             </View>
           ) : null}
@@ -129,8 +130,7 @@ export default function RealityScreen() {
           {schoolLoadError ? (
             <View className="bg-danger-soft gap-2 rounded-xl p-4">
               <Typography.Paragraph type="body-sm" className="text-danger-soft-foreground">
-                The Berlin school directory is temporarily unavailable. Check your connection and
-                type again to retry.
+                {t('reality.loadError')}
               </Typography.Paragraph>
             </View>
           ) : null}
@@ -161,7 +161,7 @@ export default function RealityScreen() {
               {schools.length > 0 && schoolSuggestions.length === 0 ? (
                 <View className="bg-background p-4">
                   <Typography.Paragraph type="body-sm" color="muted">
-                    No matching Berlin school found. Check the spelling or try the postcode.
+                    {t('reality.noMatch')}
                   </Typography.Paragraph>
                 </View>
               ) : null}
@@ -178,14 +178,16 @@ export default function RealityScreen() {
                 {profile.currentSchool.postcode} {profile.currentSchool.locality}
               </Typography.Paragraph>
               <Typography.Paragraph type="body-sm" className="text-accent-soft-foreground">
-                Berlin school number {profile.currentSchool.id} · School year{' '}
-                {profile.currentSchool.schoolYear}
+                {t('reality.schoolNumberYear', {
+                  id: profile.currentSchool.id,
+                  year: profile.currentSchool.schoolYear,
+                })}
               </Typography.Paragraph>
             </View>
           ) : null}
 
           <Typography.Paragraph type="body-sm" color="muted">
-            Source: {BERLIN_SCHOOL_SOURCE.label} · {BERLIN_SCHOOL_SOURCE.licence}
+            {t('common.source')}: {BERLIN_SCHOOL_SOURCE.label} · {BERLIN_SCHOOL_SOURCE.licence}
           </Typography.Paragraph>
         </View>
       </QuestionCard>
@@ -210,7 +212,7 @@ export default function RealityScreen() {
             className="text-accent font-semibold tracking-widest uppercase"
             type="body-sm"
           >
-            Reality check summary
+            {t('reality.summary')}
           </Typography.Paragraph>
           <StatusPill status={result.status} />
           <Typography.Paragraph>{result.explanation}</Typography.Paragraph>
@@ -225,7 +227,7 @@ export default function RealityScreen() {
                 </Typography.Paragraph>
                 {check.verificationQuestion ? (
                   <Typography.Paragraph className="font-medium">
-                    Ask: “{check.verificationQuestion}”
+                    {t('reality.askQuoted', { question: check.verificationQuestion })}
                   </Typography.Paragraph>
                 ) : null}
               </View>
@@ -233,13 +235,13 @@ export default function RealityScreen() {
           </View>
           <View className="bg-background gap-2 rounded-xl p-4">
             <Typography.Paragraph type="body-sm" color="muted">
-              Source
+              {t('common.source')}
             </Typography.Paragraph>
             <Typography.Paragraph className="font-medium">
               {result.sourceLabel} · {result.sourceDate}
             </Typography.Paragraph>
             <Typography.Paragraph type="body-sm" color="muted">
-              Ask your current school
+              {t('reality.askCurrent')}
             </Typography.Paragraph>
             <Typography.Paragraph className="font-medium">
               “{result.verificationQuestion}”
