@@ -168,7 +168,10 @@ export default function SchoolsScreen() {
                 key={school.id}
                 school={school}
                 selected={school.id === selectedSchoolId}
-                onSelect={() => selectSchool(school.id, pathwayId)}
+                onSelect={() => {
+                  selectSchool(school.id, pathwayId);
+                  router.push(routes.plan);
+                }}
                 onOpen={() => {
                   selectSchool(school.id, pathwayId);
                   router.push(routes.school(school.id));
