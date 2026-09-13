@@ -10,6 +10,7 @@ export interface BerlinSchool {
   name: string;
   schoolCategory: string;
   schoolType: string;
+  schoolProvider: string;
   borough: string;
   locality: string;
   postcode: string;
@@ -36,6 +37,7 @@ interface WfsSchoolProperties {
   bsn?: unknown;
   schulname?: unknown;
   schulart?: unknown;
+  traeger?: unknown;
   schultyp?: unknown;
   bezirk?: unknown;
   ortsteil?: unknown;
@@ -154,6 +156,7 @@ function toSchool(feature: WfsFeature): BerlinSchool | null {
     name,
     schoolCategory: text(properties.schulart),
     schoolType: text(properties.schultyp),
+    schoolProvider: text(properties.traeger),
     borough: text(properties.bezirk),
     locality: text(properties.ortsteil),
     postcode: text(properties.plz),
@@ -228,6 +231,10 @@ export function findBerlinSchools(
     .map(({ school }) => school);
 }
 
+export function isPublicSchool(school: BerlinSchool): boolean {
+  return normalize(school.schoolProvider) === 'offentlich';
+}
+
 export function isSchoolForPathway(school: BerlinSchool, pathwayId: PathwayId): boolean {
   const category = normalize(school.schoolCategory);
   const type = normalize(school.schoolType);
@@ -264,7 +271,10 @@ export function getRecommendedSchools(
 ): RecommendedSchool[] {
   return schools
     .filter(
-      (school) => school.id !== profile.currentSchool?.id && isSchoolForPathway(school, pathwayId),
+      (school) =>
+        school.id !== profile.currentSchool?.id &&
+        isPublicSchool(school) &&
+        isSchoolForPathway(school, pathwayId),
     )
     .sort(
       (first, second) =>

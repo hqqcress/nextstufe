@@ -43,7 +43,7 @@ function SchoolCard({
           </View>
           <View className="bg-accent/10 rounded-full px-3 py-1">
             <Typography.Paragraph type="body-sm" className="text-accent font-semibold">
-              Official data
+              Public school
             </Typography.Paragraph>
           </View>
         </View>
@@ -79,6 +79,9 @@ export default function SchoolsScreen() {
     [pathwayId, profile, schools],
   );
   const mappableSchools = recommendations.filter((school) => school.coordinate);
+  const hasSelectedRecommendation = recommendations.some(
+    (school) => school.id === selectedSchoolId,
+  );
 
   if (!pathwayId || !pathway) {
     return (
@@ -98,9 +101,9 @@ export default function SchoolsScreen() {
     <JourneyScreen
       eyebrow="Official school directory"
       title={`Schools to investigate for ${pathway.name}`}
-      description={`These are real Berlin schools from the official directory, ranked using school classification and postcode proximity to ${profile.postcode}. This is a research shortlist, not an admission or programme guarantee.`}
+      description={`These are public Berlin schools from the official directory, ranked using school classification and postcode proximity to ${profile.postcode}. Private schools are excluded. This is a research shortlist, not an admission or programme guarantee.`}
       footer={
-        <Button isDisabled={!selectedSchoolId} onPress={() => router.push(routes.plan)}>
+        <Button isDisabled={!hasSelectedRecommendation} onPress={() => router.push(routes.plan)}>
           <Button.Label>Continue to action plan</Button.Label>
         </Button>
       }
@@ -188,9 +191,10 @@ export default function SchoolsScreen() {
             Source and matching note
           </Typography.Paragraph>
           <Typography.Paragraph color="muted">
-            {BERLIN_SCHOOL_SOURCE.label} · {BERLIN_SCHOOL_SOURCE.licence}. The public directory does
-            not confirm current programme availability, admission, travel time, or fit with personal
-            priorities. Confirm these directly with each school.
+            {BERLIN_SCHOOL_SOURCE.label} · {BERLIN_SCHOOL_SOURCE.licence}. Recommendations only
+            include records whose provider is explicitly listed as public. The official directory
+            does not confirm current programme availability, admission, travel time, or fit with
+            personal priorities. Confirm these directly with each school.
           </Typography.Paragraph>
         </Card.Body>
       </Card>
