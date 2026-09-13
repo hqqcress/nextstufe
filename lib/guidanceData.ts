@@ -1,4 +1,5 @@
 import type { LatLng } from '@/components/MapView';
+import type { BerlinSchool } from '@/lib/berlinSchools';
 
 export type RealityStatus =
   | 'Currently open'
@@ -13,7 +14,7 @@ export interface Option {
 export interface Profile {
   studentName: string;
   postcode: string;
-  schoolType: string;
+  currentSchool: BerlinSchool | null;
   transitionStatement: string;
   qualification: string;
   upperSecondary: string;
@@ -88,18 +89,6 @@ export interface QuestionDefinition<K extends string = string> {
 const unsure: Option = { value: 'unsure', label: "I'm not sure" };
 
 export const realityQuestions: QuestionDefinition[] = [
-  {
-    key: 'schoolType',
-    title: 'What type of school do you attend now?',
-    options: [
-      { value: 'gymnasium', label: 'Gymnasium' },
-      { value: 'iss', label: 'Integrierte Sekundarschule (ISS)' },
-      { value: 'gemeinschaftsschule', label: 'Gemeinschaftsschule' },
-      { value: 'vocational', label: 'Vocational school' },
-      { value: 'other', label: 'Other' },
-      unsure,
-    ],
-  },
   {
     key: 'transitionStatement',
     title: 'What has your school officially said about the next transition?',
@@ -482,7 +471,7 @@ export const schools: DemoSchool[] = [
 export const demoProfile: Profile = {
   studentName: '',
   postcode: '10115',
-  schoolType: 'iss',
+  currentSchool: null,
   transitionStatement: 'may-be-eligible',
   qualification: 'may-qualify',
   upperSecondary: 'no',
