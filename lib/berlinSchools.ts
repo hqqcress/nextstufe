@@ -36,6 +36,7 @@ interface WfsSchoolProperties {
   bsn?: unknown;
   schulname?: unknown;
   schulart?: unknown;
+  traeger?: unknown;
   schultyp?: unknown;
   bezirk?: unknown;
   ortsteil?: unknown;
@@ -61,7 +62,8 @@ interface WfsSchoolResponse {
 }
 
 const SCHOOL_DATA_URL =
-  'https://gdi.berlin.de/services/wfs/schulen?service=WFS&version=2.0.0&request=GetFeature&typeNames=schulen%3Aschulen&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=1000';
+  'https://gdi.berlin.de/services/wfs/schulen?service=WFS&version=2.0.0&request=GetFeature&typeNames=schulen%3Aschulen&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=1000&CQL_FILTER=traeger%3D%27%C3%B6ffentlich%27';
+const PUBLIC_SCHOOL_OPERATOR = 'öffentlich';
 const SCHOOL_DIRECTORY_URL = 'https://www.bildung.berlin.de/Schulverzeichnis/';
 
 const PATHWAY_REQUIREMENTS: Record<PathwayId, string> = {
@@ -144,7 +146,8 @@ function toSchool(feature: WfsFeature): BerlinSchool | null {
 
   const id = text(properties.bsn);
   const name = text(properties.schulname);
-  if (!id || !name) return null;
+  const operator = text(properties.traeger).toLocaleLowerCase('de');
+  if (!id || !name || operator !== PUBLIC_SCHOOL_OPERATOR) return null;
 
   const streetName = text(properties.strasse);
   const houseNumber = text(properties.hausnr);
