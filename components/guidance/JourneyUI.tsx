@@ -77,17 +77,24 @@ export function OptionGrid({
     <View className="flex-row flex-wrap gap-2">
       {options.map((option) => {
         const selected = option.value === value;
+        const needsMultipleLines = option.label.length > 32;
         return (
           <Button
             key={option.value}
             variant={selected ? 'primary' : 'ghost'}
             onPress={() => onChange(option.value)}
             className={cn(
-              'min-h-11 rounded-full px-4',
+              'min-h-11 px-4',
+              needsMultipleLines ? 'h-auto w-full rounded-xl py-3' : 'rounded-full',
               !selected && 'border-border bg-surface border',
             )}
           >
-            <Button.Label>{option.label}</Button.Label>
+            <Button.Label
+              numberOfLines={needsMultipleLines ? 0 : 1}
+              className={cn(needsMultipleLines && 'flex-1 text-left leading-5')}
+            >
+              {option.label}
+            </Button.Label>
           </Button>
         );
       })}
