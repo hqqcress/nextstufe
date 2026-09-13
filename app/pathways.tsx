@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 
 import { JourneyScreen, StatusPill } from '@/components/guidance/JourneyUI';
 import { guidanceService, realityCheck, type GuidancePathway } from '@/lib/guidance';
-import { pathways, schools } from '@/lib/guidanceData';
+import { pathways } from '@/lib/guidanceData';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
@@ -27,7 +27,6 @@ export default function PathwaysScreen() {
           profile,
           realityCheck(profile),
           pathways,
-          schools,
         );
         if (!active) return;
         setItems(result.pathways.slice(0, 3));

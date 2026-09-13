@@ -15,7 +15,7 @@ export function JourneyScreen({
   description,
   footer,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   eyebrow?: string;
   title: string;
   description?: string;

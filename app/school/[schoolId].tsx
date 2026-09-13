@@ -1,120 +1,170 @@
+import { Button, Card, Spinner, Typography } from 'heroui-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Linking, View } from 'react-native';
-import { Button, Card, Typography } from 'heroui-native';
-import { router, useLocalSearchParams } from 'expo-router';
 
 import { JourneyScreen } from '@/components/guidance/JourneyUI';
-import { schools } from '@/lib/guidanceData';
+import { useBerlinSchoolDirectory } from '@/hooks/useBerlinSchoolDirectory';
+import { BERLIN_SCHOOL_SOURCE, getSchoolPathway, toRecommendedSchool } from '@/lib/berlinSchools';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
-function DetailSection({
-  title,
-  items,
-  tone = 'default',
-}: {
-  title: string;
-  items: string[];
-  tone?: 'default' | 'warning';
-}) {
-  return (
-    <Card
-      className={
-        tone === 'warning'
-          ? 'border-warning bg-warning-soft border'
-          : 'border-border bg-surface border'
-      }
-    >
-      <Card.Body className="gap-3 p-5">
-        <Typography.Heading type="h4">{title}</Typography.Heading>
-        {items.map((item) => (
-          <View key={item} className="flex-row gap-3">
-            <Typography.Paragraph className="text-accent">•</Typography.Paragraph>
-            <Typography.Paragraph className="flex-1">{item}</Typography.Paragraph>
-          </View>
-        ))}
-      </Card.Body>
-    </Card>
-  );
-}
-
 export default function SchoolDetailScreen() {
-  const params = useLocalSearchParams<{ schoolId?: string | string[] }>();
-  const schoolId = Array.isArray(params.schoolId) ? params.schoolId[0] : params.schoolId;
-  const school = schools.find((item) => item.id === schoolId);
+  const router = useRouter();
+  const params = useLocalSearchParams<{ schoolId?: string }>();
+  const profile = useGuidanceStore((state) => state.profile);
+  const selectedPathwayId = useGuidanceStore((state) => state.selectedPathwayId);
   const selectSchool = useGuidanceStore((state) => state.selectSchool);
+  const { schools, status, retry } = useBerlinSchoolDirectory();
+  const schoolRecord = schools.find((item) => item.id === params.schoolId);
+  const pathwayId = schoolRecord
+    ? (selectedPathwayId ?? getSchoolPathway(schoolRecord))
+    : undefined;
+  const school =
+    schoolRecord && pathwayId ? toRecommendedSchool(schoolRecord, pathwayId, profile) : undefined;
 
-  if (!school)
+  if (status === 'loading') {
     return (
-      <JourneyScreen title="School not found" description="This demo school record is unavailable.">
-        <Button variant="primary" onPress={() => router.replace(routes.pathways)}>
-          <Button.Label>Back to pathways</Button.Label>
+      <JourneyScreen title="Loading school details">
+        <Card>
+          <Card.Body className="items-center gap-3 p-6">
+            <Spinner />
+          </Card.Body>
+        </Card>
+      </JourneyScreen>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <JourneyScreen
+        title="The Berlin school directory is unavailable"
+        description="We cannot show reliable school details without the source data."
+      >
+        <Button onPress={retry}>
+          <Button.Label>Try again</Button.Label>
         </Button>
       </JourneyScreen>
     );
+  }
 
-  const showMap = () => {
-    selectSchool(school.id);
-    router.push(routes.schools(school.pathwayId));
-  };
+  if (!school || !pathwayId) {
+    return (
+      <JourneyScreen
+        title="School not found"
+        description="This school is not available in the current official Berlin directory."
+        footer={
+          <Button onPress={() => router.replace(routes.pathways)}>
+            <Button.Label>Back to pathways</Button.Label>
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <JourneyScreen
-      eyebrow="Demo school data"
+      eyebrow={`Official school no. ${school.id}`}
       title={school.name}
-      description={`${school.programme} · ${school.neighbourhood}`}
-    >
-      <DetailSection title="Matches" items={school.matches} />
-      <DetailSection title="Potential mismatches" items={school.mismatches} tone="warning" />
-      <DetailSection
-        title="Missing information"
-        items={school.missingInformation.map((item) => `Ask: ${item}`)}
-      />
-      <Card className="border-border bg-background-secondary border">
-        <Card.Body className="gap-3 p-5">
-          <Typography.Heading type="h4">Official information</Typography.Heading>
-          <Typography.Paragraph type="body-sm" color="muted">
-            Source date
-          </Typography.Paragraph>
-          <Typography.Paragraph>{school.sourceDate}</Typography.Paragraph>
-          <Typography.Paragraph type="body-sm" color="muted">
-            Address
-          </Typography.Paragraph>
-          <Typography.Paragraph>{school.address}</Typography.Paragraph>
-          <View className="flex-row flex-wrap gap-2">
-            <Button
-              variant="ghost"
-              onPress={() => void Linking.openURL(school.websiteUrl)}
-              className="border-border border"
-            >
-              <Button.Label>Official website</Button.Label>
-            </Button>
-            <Button
-              variant="ghost"
-              onPress={() => void Linking.openURL(school.requirementsUrl)}
-              className="border-border border"
-            >
-              <Button.Label>Entry requirements resource</Button.Label>
-            </Button>
-          </View>
-        </Card.Body>
-      </Card>
-      <View className="gap-3">
-        <Button variant="ghost" onPress={showMap} className="border-border border">
-          <Button.Label>Show on map</Button.Label>
-        </Button>
-        <Button variant="primary" onPress={() => router.push(routes.email(school.id))}>
-          <Button.Label>Draft email in German</Button.Label>
-        </Button>
+      description={`${school.programme}. The pathway match is inferred from the official school classification and must be confirmed with the school.`}
+      footer={
         <Button
-          variant="ghost"
           onPress={() => {
-            selectSchool(school.id);
-            router.push(routes.plan);
+            selectSchool(school.id, pathwayId);
+            router.push(routes.email(school.id));
           }}
         >
-          <Button.Label>Add to your action plan</Button.Label>
+          <Button.Label>Draft a question email</Button.Label>
         </Button>
-      </View>
+      }
+    >
+      <Card>
+        <Card.Body className="gap-4 p-5">
+          <View className="flex-row flex-wrap gap-2">
+            <View className="bg-success-soft rounded-full px-3 py-1.5">
+              <Typography.Paragraph
+                type="body-sm"
+                className="text-success-soft-foreground font-semibold"
+              >
+                Official directory record
+              </Typography.Paragraph>
+            </View>
+          </View>
+          <View className="gap-1">
+            <Typography.Paragraph type="body-sm" color="muted">
+              School type
+            </Typography.Paragraph>
+            <Typography.Paragraph>
+              {school.schoolType || school.schoolCategory}
+            </Typography.Paragraph>
+          </View>
+          <View className="gap-1">
+            <Typography.Paragraph type="body-sm" color="muted">
+              Address
+            </Typography.Paragraph>
+            <Typography.Paragraph>{school.address}</Typography.Paragraph>
+          </View>
+          <Typography.Paragraph type="body-sm" color="muted">
+            {school.sourceDate}
+          </Typography.Paragraph>
+        </Card.Body>
+      </Card>
+
+      <Card>
+        <Card.Body className="gap-3 p-5">
+          <Typography.Heading type="h3">Why it appears in this shortlist</Typography.Heading>
+          {school.matches.map((item) => (
+            <Typography.Paragraph key={item} color="muted">
+              • {item}
+            </Typography.Paragraph>
+          ))}
+        </Card.Body>
+      </Card>
+
+      <Card>
+        <Card.Body className="gap-3 p-5">
+          <Typography.Heading type="h3">What the directory cannot confirm</Typography.Heading>
+          {school.mismatches.map((item) => (
+            <Typography.Paragraph key={item} color="muted">
+              • {item}
+            </Typography.Paragraph>
+          ))}
+        </Card.Body>
+      </Card>
+
+      <Card>
+        <Card.Body className="gap-3 p-5">
+          <Typography.Heading type="h3">Questions to ask this school</Typography.Heading>
+          {school.missingInformation.map((item) => (
+            <Typography.Paragraph key={item} color="muted">
+              • {item}
+            </Typography.Paragraph>
+          ))}
+        </Card.Body>
+      </Card>
+
+      <Card className="bg-muted/30">
+        <Card.Body className="gap-3 p-5">
+          <Typography.Heading type="h4">Official sources</Typography.Heading>
+          <Typography.Paragraph color="muted">
+            School identity, type and address: {BERLIN_SCHOOL_SOURCE.label}. Programme and
+            admissions must be checked separately.
+          </Typography.Paragraph>
+          <Button
+            variant="ghost"
+            className="border-border border"
+            onPress={() => void Linking.openURL(school.websiteUrl)}
+          >
+            <Button.Label>Open school directory</Button.Label>
+          </Button>
+          <Button
+            variant="ghost"
+            className="border-border border"
+            onPress={() => void Linking.openURL(school.requirementsUrl)}
+          >
+            <Button.Label>Open pathway guidance</Button.Label>
+          </Button>
+        </Card.Body>
+      </Card>
     </JourneyScreen>
   );
 }

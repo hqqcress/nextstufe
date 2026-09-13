@@ -1,167 +1,206 @@
-import { Linking, View } from 'react-native';
-import { Button, Card, Typography } from 'heroui-native';
-import { router } from 'expo-router';
-import { Check } from 'lucide-react-native';
-import { useThemeColor } from 'heroui-native';
+import { Button, Card, Checkbox, Spinner, Typography } from 'heroui-native';
+import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { View } from 'react-native';
 
 import { JourneyScreen } from '@/components/guidance/JourneyUI';
-import { schools } from '@/lib/guidanceData';
+import { useBerlinSchoolDirectory } from '@/hooks/useBerlinSchoolDirectory';
+import { getSchoolPathway, toRecommendedSchool, type RecommendedSchool } from '@/lib/berlinSchools';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
-type ActionTaskLink = 'requirements' | 'website' | 'detail' | 'reality';
-
 interface ActionTask {
   id: string;
-  bucket: string;
   title: string;
-  why: string;
-  link: ActionTaskLink;
+  reason: string;
+  owner: string;
+  linkLabel: string;
+  route: ReturnType<typeof routes.email> | '/reality';
 }
 
-const baseTasks: ActionTask[] = [
-  {
-    id: 'compare',
-    bucket: 'Now',
-    title: 'Compare the selected school’s official entry requirements',
-    why: 'This separates verified requirements from assumptions.',
-    link: 'requirements',
-  },
-  {
-    id: 'email',
-    bucket: 'This week',
-    title: 'Send the German email draft',
-    why: 'The school can answer the missing information directly.',
-    link: 'detail',
-  },
-  {
-    id: 'event',
-    bucket: 'Before an open day',
-    title: 'Book or attend an information event',
-    why: 'A visit can test the learning environment and commute.',
-    link: 'website',
-  },
-  {
-    id: 'counsellor',
-    bucket: 'Before the application deadline',
-    title: 'Ask the current-school counsellor to confirm the transition status',
-    why: 'The app does not decide eligibility or admission.',
-    link: 'detail',
-  },
-  {
-    id: 'documents',
-    bucket: 'Confirm deadline with the school',
-    title: 'Gather documents listed on the official application page',
-    why: 'No deadline is shown because the demo record has no verified date.',
-    link: 'requirements',
-  },
-];
+function buildActions(school: RecommendedSchool, needsTransitionGuidance: boolean): ActionTask[] {
+  const actions: ActionTask[] = [];
 
-const transitionGuidanceTask: ActionTask = {
-  id: 'transition-guidance',
-  bucket: 'Now',
-  title: 'Ask the current school when transition guidance will take place',
-  why: 'For Grade 9, not having had this conversation yet is normal. Knowing when it will happen helps the family prepare questions.',
-  link: 'reality',
-};
+  if (needsTransitionGuidance) {
+    actions.push({
+      id: 'ask-transition-guidance',
+      title: 'Ask the current school when transition guidance will take place.',
+      reason:
+        'For Grade 9, not having had this conversation yet can be normal. Asking now clarifies the next step without treating it as a negative result.',
+      owner: 'Parent and student',
+      linkLabel: 'Review reality check',
+      route: '/reality',
+    });
+  }
+
+  actions.push(
+    {
+      id: 'contact-school',
+      title: `Contact ${school.name}`,
+      reason:
+        'Confirm current programme availability and admission directly; the official directory does not publish or guarantee these details.',
+      owner: 'Parent',
+      linkLabel: 'Open email draft',
+      route: routes.email(school.id),
+    },
+    {
+      id: 'visit-school',
+      title: `Plan a visit to ${school.name}`,
+      reason: `Use the visit to verify the environment and route to ${school.locality || school.borough}.`,
+      owner: 'Student',
+      linkLabel: 'Review school',
+      route: routes.school(school.id),
+    },
+    {
+      id: 'confirm-requirements',
+      title: 'Confirm pathway requirements',
+      reason:
+        'Ask the current school and the recommended school which certificates, grades, deadlines, and documents apply to this student.',
+      owner: 'Parent and student',
+      linkLabel: 'Review school questions',
+      route: routes.school(school.id),
+    },
+  );
+
+  return actions;
+}
 
 export default function ActionPlanScreen() {
-  const selectedSchoolId = useGuidanceStore((state) => state.selectedSchoolId);
+  const router = useRouter();
   const profile = useGuidanceStore((state) => state.profile);
-  const completed = useGuidanceStore((state) => state.completedTaskIds);
+  const selectedSchoolId = useGuidanceStore((state) => state.selectedSchoolId);
+  const selectedPathwayId = useGuidanceStore((state) => state.selectedPathwayId);
+  const completedTaskIds = useGuidanceStore((state) => state.completedTaskIds);
   const toggleTask = useGuidanceStore((state) => state.toggleTask);
-  const [accentForeground] = useThemeColor(['accent-foreground']);
-  const school = schools.find((item) => item.id === selectedSchoolId);
-  const tasks =
-    profile.transitionStatement === 'not-discussed'
-      ? [transitionGuidanceTask, ...baseTasks]
-      : baseTasks;
+  const { schools, status, retry } = useBerlinSchoolDirectory();
+  const schoolRecord = schools.find((item) => item.id === selectedSchoolId);
+  const pathwayId = schoolRecord
+    ? (selectedPathwayId ?? getSchoolPathway(schoolRecord))
+    : undefined;
+  const school =
+    schoolRecord && pathwayId ? toRecommendedSchool(schoolRecord, pathwayId, profile) : undefined;
+  const needsTransitionGuidance = profile.transitionStatement === 'not-discussed';
+  const actions = useMemo(
+    () => (school ? buildActions(school, needsTransitionGuidance) : []),
+    [needsTransitionGuidance, school],
+  );
+  const completed = actions.filter((task) => completedTaskIds.includes(task.id)).length;
 
-  if (!school) {
+  if (status === 'loading') {
+    return (
+      <JourneyScreen title="Building your action plan">
+        <Card>
+          <Card.Body className="items-center gap-3 p-6">
+            <Spinner />
+          </Card.Body>
+        </Card>
+      </JourneyScreen>
+    );
+  }
+
+  if (status === 'error') {
     return (
       <JourneyScreen
-        title="Choose a school first"
-        description="Your action plan will use the school you save or view. No school has been selected in this session yet."
+        title="The official school directory is unavailable"
+        description="Your selected school cannot be verified right now."
       >
-        <Button variant="primary" onPress={() => router.replace(routes.pathways)}>
-          <Button.Label>Explore pathways</Button.Label>
+        <Button onPress={retry}>
+          <Button.Label>Try again</Button.Label>
         </Button>
       </JourneyScreen>
     );
   }
 
-  const openLink = (kind: ActionTaskLink) => {
-    if (kind === 'detail') router.push(routes.school(school.id));
-    else if (kind === 'reality') router.push(routes.reality);
-    else void Linking.openURL(kind === 'website' ? school.websiteUrl : school.requirementsUrl);
-  };
+  if (!school) {
+    return (
+      <JourneyScreen
+        eyebrow="One step needed"
+        title="Choose a real school first"
+        description="Select a school from the official Berlin directory so the plan can use the correct name, address, and follow-up questions."
+        footer={
+          <Button onPress={() => router.replace(routes.pathways)}>
+            <Button.Label>Choose a pathway and school</Button.Label>
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <JourneyScreen
-      eyebrow={school.name}
-      title="Your action plan"
-      description="A practical sequence with no invented deadlines. Completed tasks stay marked while this app session is open."
+      eyebrow="Your next steps"
+      title="A practical action plan"
+      description={`${completed} of ${actions.length} complete. This plan is saved for the current session.`}
+      footer={
+        <Button onPress={() => router.replace(routes.home)}>
+          <Button.Label>Return to overview</Button.Label>
+        </Button>
+      }
     >
-      {tasks.map((task) => {
-        const done = completed.includes(task.id);
-        return (
-          <View key={task.id} className="gap-2">
-            <Typography.Paragraph
-              className="text-accent font-semibold tracking-widest uppercase"
-              type="body-sm"
+      <Card className="bg-accent/10">
+        <Card.Body className="gap-2 p-5">
+          <Typography.Paragraph
+            type="body-sm"
+            className="text-accent font-semibold tracking-wide uppercase"
+          >
+            Selected official school
+          </Typography.Paragraph>
+          <Typography.Heading type="h3">{school.name}</Typography.Heading>
+          <Typography.Paragraph color="muted">{school.address}</Typography.Paragraph>
+        </Card.Body>
+      </Card>
+
+      <View className="gap-4">
+        {actions.map((task, index) => {
+          const isDone = completedTaskIds.includes(task.id);
+          return (
+            <Card
+              key={task.id}
+              className={isDone ? 'border-success/40 bg-success-soft border' : ''}
             >
-              {task.bucket}
-            </Typography.Paragraph>
-            <Card className="border-border bg-surface border">
-              <Card.Body className="gap-3 p-5">
-                <View className="flex-row items-start gap-3">
-                  <Button
-                    variant={done ? 'primary' : 'ghost'}
-                    onPress={() => toggleTask(task.id)}
-                    className={
-                      done
-                        ? 'h-11 w-11 rounded-full px-0'
-                        : 'border-border h-11 w-11 rounded-full border px-0'
-                    }
-                    accessibilityLabel={done ? 'Mark task not done' : 'Mark task done'}
-                  >
-                    {done ? (
-                      <Check color={accentForeground} size={20} />
-                    ) : (
-                      <Button.Label>○</Button.Label>
-                    )}
-                  </Button>
+              <Card.Body className="gap-4 p-5">
+                <View className="flex-row items-start gap-4">
+                  <Checkbox
+                    isSelected={isDone}
+                    onSelectedChange={() => toggleTask(task.id)}
+                    accessibilityLabel={`Mark ${task.title} complete`}
+                  />
                   <View className="min-w-0 flex-1 gap-2">
+                    <Typography.Paragraph
+                      type="body-sm"
+                      className="text-accent font-semibold tracking-wide uppercase"
+                    >
+                      Step {index + 1} · {task.owner}
+                    </Typography.Paragraph>
                     <Typography.Heading
                       type="h4"
-                      className={done ? 'text-muted line-through' : undefined}
+                      className={isDone ? 'line-through opacity-60' : ''}
                     >
                       {task.title}
                     </Typography.Heading>
-                    <Typography.Paragraph type="body-sm" color="muted">
-                      Why it matters: {task.why}
-                    </Typography.Paragraph>
-                    <Button
-                      variant="ghost"
-                      onPress={() => openLink(task.link)}
-                      className="self-start px-0"
-                    >
-                      <Button.Label>Open related information</Button.Label>
-                    </Button>
+                    <Typography.Paragraph color="muted">{task.reason}</Typography.Paragraph>
                   </View>
                 </View>
+                <Button variant="ghost" onPress={() => router.push(task.route)}>
+                  <Button.Label>{task.linkLabel}</Button.Label>
+                </Button>
               </Card.Body>
             </Card>
-          </View>
-        );
-      })}
-      <Button
-        variant="ghost"
-        onPress={() => router.push(routes.pathways)}
-        className="border-border border"
-      >
-        <Button.Label>Review pathways</Button.Label>
-      </Button>
+          );
+        })}
+      </View>
+
+      <Card className="bg-muted/40">
+        <Card.Body className="gap-2 p-4">
+          <Typography.Paragraph type="body-sm" className="font-semibold">
+            Important boundary
+          </Typography.Paragraph>
+          <Typography.Paragraph color="muted">
+            The shortlist and plan support research. They do not determine eligibility, admission,
+            programme availability, or deadlines.
+          </Typography.Paragraph>
+        </Card.Body>
+      </Card>
     </JourneyScreen>
   );
 }

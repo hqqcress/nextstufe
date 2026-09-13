@@ -1,10 +1,4 @@
-import type {
-  DemoSchool,
-  PathwayCard,
-  Profile,
-  RealityCheckResult,
-  RealityStatus,
-} from './guidanceData';
+import type { PathwayCard, Profile, RealityCheckResult, RealityStatus } from './guidanceData';
 
 const SOURCE = 'Berlin demo transition rule card';
 const SOURCE_DATE = 'Reviewed 13 Sep 2026';
@@ -107,7 +101,6 @@ export interface GuidanceService {
     profile: Profile,
     realityCheckResult: RealityCheckResult,
     pathwayCards: PathwayCard[],
-    schoolCards: DemoSchool[],
   ): Promise<GeneratedGuidance>;
 }
 
@@ -117,7 +110,7 @@ function pathwayStatus(pathway: PathwayCard, base: RealityStatus): RealityStatus
 }
 
 export const guidanceService: GuidanceService = {
-  async generateGuidance(profile, reality, pathwayCards, schoolCards) {
+  async generateGuidance(profile, reality, pathwayCards) {
     const interest =
       profile.student.interests === 'unsure' ? 'keeping interests open' : profile.student.interests;
     const parentHope = profile.parent.hope;
@@ -127,10 +120,10 @@ export const guidanceService: GuidanceService = {
         status: pathwayStatus(pathway, reality.status),
         whyFit: `${pathway.name} connects the student’s ${interest} preference with the parent priority of ${parentHope}.`,
       })),
-      schoolMatches: schoolCards.flatMap((school) => school.matches).slice(0, 3),
-      potentialMismatches: schoolCards.flatMap((school) => school.mismatches).slice(0, 3),
-      missingInformation: schoolCards.flatMap((school) => school.missingInformation).slice(0, 4),
-      schoolVisitQuestions: schoolCards.flatMap((school) => school.missingInformation).slice(0, 3),
+      schoolMatches: [],
+      potentialMismatches: [],
+      missingInformation: [],
+      schoolVisitQuestions: [],
       counsellorQuestion: reality.verificationQuestion,
       germanEmail: { subject: 'Fragen zum Bildungsgang', body: 'Deterministic demo draft' },
       orderedActionPlanTasks: ['Compare requirements', 'Send email', 'Attend an information event'],

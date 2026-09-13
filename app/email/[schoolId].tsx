@@ -1,82 +1,169 @@
+import {
+  Button,
+  Card,
+  Input,
+  Label,
+  Spinner,
+  TextArea,
+  TextField,
+  Typography,
+} from 'heroui-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
-import { Button, Input, Label, TextArea, TextField, Typography } from 'heroui-native';
-import * as Clipboard from 'expo-clipboard';
-import { router, useLocalSearchParams } from 'expo-router';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import { JourneyScreen } from '@/components/guidance/JourneyUI';
-import { schools } from '@/lib/guidanceData';
+import { useBerlinSchoolDirectory } from '@/hooks/useBerlinSchoolDirectory';
+import { getSchoolPathway, toRecommendedSchool, type RecommendedSchool } from '@/lib/berlinSchools';
+import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
+function buildDraft(school: RecommendedSchool, studentName: string) {
+  return {
+    subject: `Questions about transition options at ${school.name}`,
+    body: `Dear ${school.name} team,\n\nWe are exploring options after Grade 10 for ${studentName || 'our child'} and found your school in the official Berlin school directory.\n\nCould you please tell us:\n\n${school.missingInformation.map((item) => `- ${item}`).join('\n')}\n\nWe understand that the directory listing does not confirm programme availability or admission.\n\nKind regards`,
+  };
+}
+
 export default function EmailDraftScreen() {
-  const params = useLocalSearchParams<{ schoolId?: string | string[] }>();
-  const schoolId = Array.isArray(params.schoolId) ? params.schoolId[0] : params.schoolId;
-  const school = schools.find((item) => item.id === schoolId);
-  const initial = useMemo(
-    () =>
-      school
-        ? {
-            subject: `Fragen zum Bildungsgang ${school.programme}`,
-            body: `Sehr geehrte Damen und Herren,\n\nmeine Tochter / mein Sohn interessiert sich für den Bildungsgang „${school.programme}“ an Ihrer Schule.\n\nDazu haben wir zwei Fragen:\n1. ${school.missingInformation[0]}\n2. ${school.missingInformation[1]}\n\nKönnten Sie uns bitte auch mitteilen, ob ein Beratungsgespräch oder Tag der offenen Tür geplant ist und welche Unterlagen für die Bewerbung benötigt werden?\n\nVielen Dank für Ihre Unterstützung.\n\nMit freundlichen Grüßen\n[Name]`,
-          }
-        : { subject: '', body: '' },
-    [school],
+  const router = useRouter();
+  const params = useLocalSearchParams<{ schoolId?: string }>();
+  const profile = useGuidanceStore((state) => state.profile);
+  const selectedPathwayId = useGuidanceStore((state) => state.selectedPathwayId);
+  const { schools, status, retry } = useBerlinSchoolDirectory();
+  const schoolRecord = schools.find((item) => item.id === params.schoolId);
+  const pathwayId = schoolRecord
+    ? (selectedPathwayId ?? getSchoolPathway(schoolRecord))
+    : undefined;
+  const school =
+    schoolRecord && pathwayId ? toRecommendedSchool(schoolRecord, pathwayId, profile) : undefined;
+
+  if (status === 'loading') {
+    return (
+      <View className="bg-background flex-1 items-center justify-center gap-3 p-6">
+        <Spinner />
+        <Typography.Paragraph color="muted">Loading the selected school…</Typography.Paragraph>
+      </View>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <View className="bg-background flex-1 items-center justify-center gap-4 p-6">
+        <Typography.Heading type="h3" className="text-center">
+          The official school directory is unavailable
+        </Typography.Heading>
+        <Button onPress={retry}>
+          <Button.Label>Try again</Button.Label>
+        </Button>
+      </View>
+    );
+  }
+
+  if (!school) {
+    return (
+      <View className="bg-background flex-1 items-center justify-center gap-4 p-6">
+        <Typography.Heading type="h3">School not found</Typography.Heading>
+        <Typography.Paragraph color="muted" className="text-center">
+          Choose a school from the official recommendation list before drafting an email.
+        </Typography.Paragraph>
+        <Button onPress={() => router.replace(routes.pathways)}>
+          <Button.Label>Back to pathways</Button.Label>
+        </Button>
+      </View>
+    );
+  }
+
+  return (
+    <EmailComposer
+      school={school}
+      studentName={profile.studentName}
+      onContinue={() => router.push(routes.plan)}
+    />
   );
+}
+
+function EmailComposer({
+  school,
+  studentName,
+  onContinue,
+}: {
+  school: RecommendedSchool;
+  studentName: string;
+  onContinue: () => void;
+}) {
+  const initial = useMemo(() => buildDraft(school, studentName), [school, studentName]);
   const [subject, setSubject] = useState(initial.subject);
   const [body, setBody] = useState(initial.body);
   const [copied, setCopied] = useState(false);
 
-  if (!school)
-    return (
-      <JourneyScreen
-        title="Draft unavailable"
-        description="The school record needed for this email is missing."
-      >
-        <Button variant="primary" onPress={() => router.replace(routes.pathways)}>
-          <Button.Label>Back to pathways</Button.Label>
-        </Button>
-      </JourneyScreen>
-    );
-
-  const copy = async () => {
-    await Clipboard.setStringAsync(`Betreff: ${subject}\n\n${body}`);
-    setCopied(true);
-  };
+  async function copyDraft() {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(`${subject}\n\n${body}`);
+      setCopied(true);
+    }
+  }
 
   return (
-    <JourneyScreen
-      eyebrow="Editable German draft"
-      title="Ask the school directly"
-      description="This draft uses only questions from the demo school record. Edit names and details before sending."
+    <KeyboardAvoidingView
+      className="bg-background flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View className="border-border bg-surface gap-5 rounded-2xl border p-5">
-        <TextField>
-          <Label>Subject</Label>
-          <Input value={subject} onChangeText={setSubject} />
-        </TextField>
-        <TextField>
-          <Label>Email</Label>
-          <TextArea value={body} onChangeText={setBody} className="min-h-80" />
-        </TextField>
-      </View>
-      {copied ? (
-        <Typography.Paragraph className="text-success font-medium">
-          Email copied to clipboard.
+      <View className="border-border bg-background pt-safe-or-4 border-b px-6 pb-4">
+        <Typography.Paragraph type="body-sm" color="muted">
+          Step 5 of 5
         </Typography.Paragraph>
-      ) : null}
-      <Button variant="primary" onPress={() => void copy()}>
-        <Button.Label>Copy email</Button.Label>
-      </Button>
-      <Button
-        variant="ghost"
-        onPress={() => router.replace(routes.school(school.id))}
-        className="border-border border"
+      </View>
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-5 px-6 py-6 pb-36"
+        keyboardShouldPersistTaps="handled"
       >
-        <Button.Label>Back to school</Button.Label>
-      </Button>
-      <Button variant="ghost" onPress={() => router.push(routes.plan)}>
-        <Button.Label>Continue to action plan</Button.Label>
-      </Button>
-    </JourneyScreen>
+        <View className="gap-2">
+          <Typography.Paragraph
+            type="body-sm"
+            className="text-accent font-semibold tracking-widest uppercase"
+          >
+            Editable template
+          </Typography.Paragraph>
+          <Typography.Heading type="h1">Ask {school.name}</Typography.Heading>
+          <Typography.Paragraph color="muted">
+            Edit this before sending. The questions focus on facts that the public directory cannot
+            confirm.
+          </Typography.Paragraph>
+        </View>
+        <Card>
+          <Card.Body className="gap-4 p-5">
+            <TextField isRequired>
+              <Label>Subject</Label>
+              <Input value={subject} onChangeText={setSubject} />
+            </TextField>
+            <TextField isRequired>
+              <Label>Message</Label>
+              <TextArea value={body} onChangeText={setBody} className="min-h-80" />
+            </TextField>
+          </Card.Body>
+        </Card>
+        <Card className="bg-warning-soft">
+          <Card.Body className="p-4">
+            <Typography.Paragraph className="text-warning-soft-foreground">
+              The app does not send emails. Copy the draft and send it using your preferred email
+              app after checking the wording.
+            </Typography.Paragraph>
+          </Card.Body>
+        </Card>
+        <View className="flex-row gap-3">
+          <Button
+            variant="ghost"
+            className="border-border flex-1 border"
+            onPress={() => void copyDraft()}
+          >
+            <Button.Label>{copied ? 'Copied' : 'Copy draft'}</Button.Label>
+          </Button>
+          <Button className="flex-1" onPress={onContinue}>
+            <Button.Label>Build action plan</Button.Label>
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

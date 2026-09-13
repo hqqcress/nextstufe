@@ -1,3 +1,10 @@
+import type { PathwayId, Profile } from './guidanceData';
+
+export interface SchoolCoordinate {
+  latitude: number;
+  longitude: number;
+}
+
 export interface BerlinSchool {
   id: string;
   name: string;
@@ -8,6 +15,19 @@ export interface BerlinSchool {
   postcode: string;
   street: string;
   schoolYear: string;
+  coordinate?: SchoolCoordinate;
+}
+
+export interface RecommendedSchool extends BerlinSchool {
+  pathwayId: PathwayId;
+  programme: string;
+  address: string;
+  websiteUrl: string;
+  requirementsUrl: string;
+  sourceDate: string;
+  matches: string[];
+  mismatches: string[];
+  missingInformation: string[];
 }
 
 interface WfsSchoolProperties {
@@ -23,12 +43,52 @@ interface WfsSchoolProperties {
   schuljahr?: unknown;
 }
 
+interface WfsGeometry {
+  type?: unknown;
+  coordinates?: unknown;
+}
+
+interface WfsFeature {
+  properties?: WfsSchoolProperties;
+  geometry?: WfsGeometry;
+}
+
 interface WfsSchoolResponse {
-  features?: { properties?: WfsSchoolProperties }[];
+  features?: WfsFeature[];
 }
 
 const SCHOOL_DATA_URL =
-  'https://gdi.berlin.de/services/wfs/schulen?service=WFS&version=2.0.0&request=GetFeature&typeNames=schulen%3Aschulen&outputFormat=application%2Fjson&propertyName=bsn%2Cschulname%2Cschulart%2Cschultyp%2Cbezirk%2Cortsteil%2Cplz%2Cstrasse%2Chausnr%2Cschuljahr&count=1000';
+  'https://gdi.berlin.de/services/wfs/schulen?service=WFS&version=2.0.0&request=GetFeature&typeNames=schulen%3Aschulen&outputFormat=application%2Fjson&srsName=EPSG%3A4326&count=1000';
+const SCHOOL_DIRECTORY_URL = 'https://www.bildung.berlin.de/Schulverzeichnis/';
+
+const PATHWAY_REQUIREMENTS: Record<PathwayId, string> = {
+  oberstufe:
+    'https://www.berlin.de/sen/bildung/schule/bildungswege/gymnasium/gymnasiale-oberstufe/',
+  'berufliches-gymnasium':
+    'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/berufliches-gymnasium/',
+  ausbildung: 'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/berufsschule/',
+};
+
+const PATHWAY_PROGRAMMES: Record<PathwayId, string> = {
+  oberstufe: 'Possible general upper-secondary route',
+  'berufliches-gymnasium': 'Possible vocational upper-secondary route',
+  ausbildung: 'Possible vocational education or training route',
+};
+
+const PATHWAY_QUESTIONS: Record<PathwayId, string[]> = {
+  oberstufe: [
+    'Does this location accept external students into its gymnasiale Oberstufe?',
+    'Which entry requirements and subject combinations apply for the next school year?',
+  ],
+  'berufliches-gymnasium': [
+    'Does this school currently offer a berufliches Gymnasium leading to the Abitur?',
+    'Which vocational focus and entry requirements apply for the next school year?',
+  ],
+  ausbildung: [
+    'Which dual or school-based programmes are currently offered here?',
+    'Which qualification, employer placement, and application documents does each programme require?',
+  ],
+};
 
 export const BERLIN_SCHOOL_SOURCE = {
   label: 'Berlin Open Data · Schools (WFS)',
@@ -49,7 +109,9 @@ function isWfsSchoolResponse(value: unknown): value is WfsSchoolResponse {
     Array.isArray(value.features) &&
     value.features.every(
       (feature) =>
-        isRecord(feature) && (feature.properties === undefined || isRecord(feature.properties)),
+        isRecord(feature) &&
+        (feature.properties === undefined || isRecord(feature.properties)) &&
+        (feature.geometry === undefined || feature.geometry === null || isRecord(feature.geometry)),
     )
   );
 }
@@ -58,7 +120,17 @@ function text(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
 }
 
-function toSchool(properties: WfsSchoolProperties): BerlinSchool | null {
+function toCoordinate(geometry: WfsGeometry | undefined): SchoolCoordinate | undefined {
+  if (geometry?.type !== 'Point' || !Array.isArray(geometry.coordinates)) return undefined;
+  const [longitude, latitude] = geometry.coordinates;
+  if (typeof longitude !== 'number' || typeof latitude !== 'number') return undefined;
+  return { latitude, longitude };
+}
+
+function toSchool(feature: WfsFeature): BerlinSchool | null {
+  const properties = feature.properties;
+  if (!properties) return null;
+
   const id = text(properties.bsn);
   const name = text(properties.schulname);
   if (!id || !name) return null;
@@ -76,6 +148,7 @@ function toSchool(properties: WfsSchoolProperties): BerlinSchool | null {
     postcode: text(properties.plz),
     street: [streetName, houseNumber].filter(Boolean).join(' '),
     schoolYear: text(properties.schuljahr),
+    coordinate: toCoordinate(feature.geometry),
   };
 }
 
@@ -91,7 +164,7 @@ export function loadBerlinSchools(): Promise<BerlinSchool[]> {
     })
     .then((response) =>
       (response.features ?? [])
-        .map((feature) => (feature.properties ? toSchool(feature.properties) : null))
+        .map(toSchool)
         .filter((school): school is BerlinSchool => school !== null)
         .sort((first, second) => first.name.localeCompare(second.name, 'de')),
     )
@@ -141,4 +214,93 @@ export function findBerlinSchools(
     )
     .slice(0, limit)
     .map(({ school }) => school);
+}
+
+export function isSchoolForPathway(school: BerlinSchool, pathwayId: PathwayId): boolean {
+  const category = normalize(school.schoolCategory);
+  const type = normalize(school.schoolType);
+
+  if (pathwayId === 'oberstufe') {
+    return category.includes('gymnasium') || type.includes('gymnasium');
+  }
+
+  if (pathwayId === 'berufliches-gymnasium') {
+    return category.includes('oberstufenzentrum') || type.includes('berufliches gymnasium');
+  }
+
+  return (
+    category.includes('oberstufenzentrum') ||
+    category.includes('berufsschule') ||
+    type.includes('berufsschule') ||
+    type.includes('fachschule')
+  );
+}
+
+function postcodeRank(schoolPostcode: string, homePostcode: string): number {
+  if (!/^\d{5}$/.test(homePostcode) || !/^\d{5}$/.test(schoolPostcode)) return 1_000_000;
+  if (schoolPostcode === homePostcode) return 0;
+  if (schoolPostcode.slice(0, 3) === homePostcode.slice(0, 3)) return 10;
+  if (schoolPostcode.slice(0, 2) === homePostcode.slice(0, 2)) return 100;
+  return 1000 + Math.abs(Number(schoolPostcode) - Number(homePostcode));
+}
+
+export function getRecommendedSchools(
+  schools: BerlinSchool[],
+  pathwayId: PathwayId,
+  profile: Profile,
+  limit = 3,
+): RecommendedSchool[] {
+  return schools
+    .filter(
+      (school) => school.id !== profile.currentSchool?.id && isSchoolForPathway(school, pathwayId),
+    )
+    .sort(
+      (first, second) =>
+        postcodeRank(first.postcode, profile.postcode) -
+          postcodeRank(second.postcode, profile.postcode) ||
+        first.name.localeCompare(second.name, 'de'),
+    )
+    .slice(0, limit)
+    .map((school) => toRecommendedSchool(school, pathwayId, profile));
+}
+
+export function toRecommendedSchool(
+  school: BerlinSchool,
+  pathwayId: PathwayId,
+  profile: Profile,
+): RecommendedSchool {
+  const category = school.schoolType || school.schoolCategory || 'school';
+  const nearbyPostcode =
+    /^\d{5}$/.test(profile.postcode) &&
+    school.postcode.slice(0, 2) === profile.postcode.slice(0, 2);
+
+  return {
+    ...school,
+    pathwayId,
+    programme: PATHWAY_PROGRAMMES[pathwayId],
+    address: [school.street, [school.postcode, school.locality].filter(Boolean).join(' ')]
+      .filter(Boolean)
+      .join(', '),
+    websiteUrl: SCHOOL_DIRECTORY_URL,
+    requirementsUrl: PATHWAY_REQUIREMENTS[pathwayId],
+    sourceDate: school.schoolYear
+      ? `Official directory · school year ${school.schoolYear}`
+      : 'Official Berlin school directory',
+    matches: [
+      `The official directory classifies this location as ${category}.`,
+      nearbyPostcode
+        ? `Its postcode is in the same Berlin postcode area as ${profile.postcode}.`
+        : 'It is included after comparing Berlin postcode proximity.',
+    ],
+    mismatches: [
+      'The directory does not confirm the exact programme, admission decision, or journey time.',
+    ],
+    missingInformation: PATHWAY_QUESTIONS[pathwayId],
+  };
+}
+
+export function getSchoolPathway(school: BerlinSchool): PathwayId | undefined {
+  return (['oberstufe', 'berufliches-gymnasium', 'ausbildung'] as const).find((pathwayId) =>
+    isSchoolForPathway(school, pathwayId),
+  );
 }

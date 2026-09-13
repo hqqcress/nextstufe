@@ -62,6 +62,8 @@ export interface PathwayCard {
   resourceUrl: string;
 }
 
+export type PathwayId = PathwayCard['id'];
+
 export interface DemoSchool {
   id: string;
   pathwayId: PathwayCard['id'];
