@@ -141,8 +141,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <HeroUINativeProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ title: 'Habits', headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" options={{ title: 'Pathfinder Berlin' }} />
+          <Stack.Screen name="reality" />
+          <Stack.Screen name="student-priorities" />
+          <Stack.Screen name="parent-priorities" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="pathways" />
+          <Stack.Screen name="schools/[pathwayId]" />
+          <Stack.Screen name="school/[schoolId]" />
+          <Stack.Screen name="email/[schoolId]" />
+          <Stack.Screen name="action-plan" />
         </Stack>
         <InstallPrompt />
       </HeroUINativeProvider>
