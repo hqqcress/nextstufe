@@ -69,7 +69,7 @@ export default function RealityScreen() {
     transitionStatement: profile.transitionStatement,
     qualification: profile.qualification,
     upperSecondary: profile.upperSecondary,
-    maxTravelMinutes: String(profile.maxTravelMinutes),
+    maxTravelMinutes: profile.maxTravelMinutes === null ? '' : String(profile.maxTravelMinutes),
   };
 
   const update = (key: string, value: string) => {

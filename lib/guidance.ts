@@ -24,18 +24,21 @@ function statusFromProfile(profile: Profile): RealityStatus {
 }
 
 export function realityCheck(profile: Profile): RealityCheckResult {
+  const hasTransitionAnswers = Boolean(profile.transitionStatement && profile.qualification);
   const status = statusFromProfile(profile);
   const hasNotDiscussedTransition = profile.transitionStatement === 'not-discussed';
   const verificationQuestion = hasNotDiscussedTransition
     ? 'When will transition guidance about options after Grade 10 take place?'
     : 'Based on my current report, which upper-secondary transitions can the school officially confirm, and what document records that decision?';
-  const explanation = hasNotDiscussedTransition
-    ? 'No transition-guidance conversation has taken place yet. This is normal in Grade 9 and is not a negative result; ask the current school when guidance will happen.'
-    : status === 'Currently open'
-      ? 'The demo answers point toward an upper-secondary transition. This is not an admission decision; confirm the recorded status with the current school.'
-      : status === 'Needs confirmation'
-        ? 'The demo information is not conclusive. Based on the demo rule card, confirm this transition status with your current school.'
-        : 'The current demo information does not support recommending a direct upper-secondary transition yet. Ask the current school about requirements and alternative routes.';
+  const explanation = !hasTransitionAnswers
+    ? 'Answer the transition and report questions to create a reality-check summary.'
+    : hasNotDiscussedTransition
+      ? 'No transition-guidance conversation has taken place yet. This is normal in Grade 9 and is not a negative result; ask the current school when guidance will happen.'
+      : status === 'Currently open'
+        ? 'The demo answers point toward an upper-secondary transition. This is not an admission decision; confirm the recorded status with the current school.'
+        : status === 'Needs confirmation'
+          ? 'The demo information is not conclusive. Based on the demo rule card, confirm this transition status with your current school.'
+          : 'The current demo information does not support recommending a direct upper-secondary transition yet. Ask the current school about requirements and alternative routes.';
 
   return {
     status,
@@ -60,7 +63,9 @@ export function realityCheck(profile: Profile): RealityCheckResult {
         explanation:
           profile.upperSecondary === 'yes'
             ? 'The profile says the current school has its own or a cooperating upper-secondary programme.'
-            : 'A connected programme is not confirmed, so ask which partner routes the school supports.',
+            : profile.upperSecondary
+              ? 'A connected programme is not confirmed, so ask which partner routes the school supports.'
+              : 'Answer the current-school programme question to complete this check.',
         sourceLabel: 'Family profile answer',
         sourceDate: 'Current session',
         verificationQuestion:
@@ -71,8 +76,11 @@ export function realityCheck(profile: Profile): RealityCheckResult {
       {
         id: 'travel',
         title: 'Travel preference',
-        status: 'Currently open',
-        explanation: `Options will be filtered using a maximum one-way travel preference of ${profile.maxTravelMinutes} minutes. Estimates must be checked before applying.`,
+        status: profile.maxTravelMinutes === null ? 'Needs confirmation' : 'Currently open',
+        explanation:
+          profile.maxTravelMinutes === null
+            ? 'Choose a maximum one-way travel time to use as a preference.'
+            : `Options will be filtered using a maximum one-way travel preference of ${profile.maxTravelMinutes} minutes. Estimates must be checked before applying.`,
         sourceLabel: 'Family profile answer',
         sourceDate: 'Current session',
       },
@@ -112,8 +120,10 @@ function pathwayStatus(pathway: PathwayCard, base: RealityStatus): RealityStatus
 export const guidanceService: GuidanceService = {
   async generateGuidance(profile, reality, pathwayCards) {
     const interest =
-      profile.student.interests === 'unsure' ? 'keeping interests open' : profile.student.interests;
-    const parentHope = profile.parent.hope;
+      profile.student.interests === 'unsure'
+        ? 'keeping interests open'
+        : profile.student.interests || 'open interests';
+    const parentHope = profile.parent.hope || 'keeping options open';
     return {
       pathways: pathwayCards.map((pathway) => ({
         ...pathway,

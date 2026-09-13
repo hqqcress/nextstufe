@@ -24,22 +24,26 @@ function ProfileChip({ label, kind }: { label: string; kind: 'student' | 'parent
 
 export default function ProfileScreen() {
   const profile = useGuidanceStore((state) => state.profile);
-  const studentChips = Object.values(profile.student);
+  const studentChips = Object.values(profile.student).filter(Boolean);
   const parentChips = [
     profile.parent.optionsOpen,
-    `${profile.parent.commute} min commute`,
+    profile.parent.commute === null ? '' : `${profile.parent.commute} min commute`,
     profile.parent.focus,
     profile.parent.support,
     profile.parent.hope,
-  ];
+  ].filter(Boolean);
   const agree =
-    profile.student.direction === 'open' || profile.parent.optionsOpen === 'very'
-      ? 'You both value keeping future options open.'
-      : 'You both want the next step to have a clear purpose.';
+    studentChips.length === 0 || parentChips.length === 0
+      ? 'Complete both sets of priorities to identify shared preferences.'
+      : profile.student.direction === 'open' || profile.parent.optionsOpen === 'very'
+        ? 'You both value keeping future options open.'
+        : 'You both want the next step to have a clear purpose.';
   const discuss =
-    profile.student.avoid === 'commute'
-      ? `Discuss whether ${profile.parent.commute} minutes one way feels sustainable every day.`
-      : 'Discuss how broad or specialised the next programme should be.';
+    studentChips.length === 0 || parentChips.length === 0
+      ? 'Choose the unanswered priorities before comparing pathways.'
+      : profile.student.avoid === 'commute' && profile.parent.commute !== null
+        ? `Discuss whether ${profile.parent.commute} minutes one way feels sustainable every day.`
+        : 'Discuss how broad or specialised the next programme should be.';
 
   return (
     <JourneyScreen
@@ -64,9 +68,13 @@ export default function ProfileScreen() {
               : 'Student priorities'}
           </Typography.Heading>
           <View className="flex-row flex-wrap gap-2">
-            {studentChips.map((chip) => (
-              <ProfileChip key={chip} label={chip} kind="student" />
-            ))}
+            {studentChips.length > 0 ? (
+              studentChips.map((chip) => <ProfileChip key={chip} label={chip} kind="student" />)
+            ) : (
+              <Typography.Paragraph type="body-sm" color="muted">
+                No student priorities selected yet.
+              </Typography.Paragraph>
+            )}
           </View>
         </Card.Body>
       </Card>
@@ -74,9 +82,13 @@ export default function ProfileScreen() {
         <Card.Body className="gap-4 p-5">
           <Typography.Heading type="h4">Parent priorities</Typography.Heading>
           <View className="flex-row flex-wrap gap-2">
-            {parentChips.map((chip) => (
-              <ProfileChip key={chip} label={chip} kind="parent" />
-            ))}
+            {parentChips.length > 0 ? (
+              parentChips.map((chip) => <ProfileChip key={chip} label={chip} kind="parent" />)
+            ) : (
+              <Typography.Paragraph type="body-sm" color="muted">
+                No parent priorities selected yet.
+              </Typography.Paragraph>
+            )}
           </View>
         </Card.Body>
       </Card>

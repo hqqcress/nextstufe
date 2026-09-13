@@ -18,7 +18,7 @@ export interface Profile {
   transitionStatement: string;
   qualification: string;
   upperSecondary: string;
-  maxTravelMinutes: number;
+  maxTravelMinutes: number | null;
   student: {
     interests: string;
     challenge: string;
@@ -28,7 +28,7 @@ export interface Profile {
   };
   parent: {
     optionsOpen: string;
-    commute: number;
+    commute: number | null;
     focus: string;
     support: string;
     hope: string;
@@ -488,22 +488,22 @@ export const demoProfile: Profile = {
   studentName: '',
   postcode: '10115',
   currentSchool: null,
-  transitionStatement: 'conditions-to-confirm',
-  qualification: 'may-qualify',
-  upperSecondary: 'no',
-  maxTravelMinutes: 45,
+  transitionStatement: '',
+  qualification: '',
+  upperSecondary: '',
+  maxTravelMinutes: null,
   student: {
-    interests: 'technology',
-    challenge: 'balanced',
-    environment: 'practical',
-    direction: 'open',
-    avoid: 'commute',
+    interests: '',
+    challenge: '',
+    environment: '',
+    direction: '',
+    avoid: '',
   },
   parent: {
-    optionsOpen: 'very',
-    commute: 45,
-    focus: 'maybe',
-    support: 'structure',
-    hope: 'flexibility',
+    optionsOpen: '',
+    commute: null,
+    focus: '',
+    support: '',
+    hope: '',
   },
 };

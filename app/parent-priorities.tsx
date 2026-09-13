@@ -12,7 +12,7 @@ export default function ParentPrioritiesScreen() {
   const setProfileField = useGuidanceStore((state) => state.setProfileField);
 
   const valueFor = (key: keyof typeof parent) =>
-    key === 'commute' ? String(parent.commute) : parent[key];
+    key === 'commute' ? (parent.commute === null ? '' : String(parent.commute)) : parent[key];
   const update = (key: keyof typeof parent, value: string) => {
     if (key === 'commute') {
       const minutes = Number(value);
