@@ -118,10 +118,10 @@ export function InstallPrompt() {
         style={{ bottom }}
         className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
-        <BrandLogo width={42} height={34} label="NextStufe logo" />
+        <BrandLogo width={42} height={34} label="Wegweisser logo" />
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">
-            Add NextStufe to home screen
+            Add Wegweisser to home screen
           </Text.Paragraph>
           <Text.Paragraph type="body-xs" color="muted">
             Install this app for a full-screen experience
@@ -155,10 +155,10 @@ export function InstallPrompt() {
         style={{ bottom }}
         className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
-        <BrandLogo width={42} height={34} label="NextStufe logo" />
+        <BrandLogo width={42} height={34} label="Wegweisser logo" />
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">
-            Add NextStufe to home screen
+            Add Wegweisser to home screen
           </Text.Paragraph>
           <Text.Paragraph type="body-xs" color="muted">
             Tap Share, then “Add to Home Screen” to install this app

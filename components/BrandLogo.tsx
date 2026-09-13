@@ -10,7 +10,7 @@ type BrandLogoProps = Omit<ComponentProps<typeof Svg>, 'viewBox'> & {
   label?: string;
 };
 
-export function BrandLogo({ label = 'NextStufe', ...props }: BrandLogoProps) {
+export function BrandLogo({ label = 'Wegweisser', ...props }: BrandLogoProps) {
   return (
     <Svg viewBox="0 0 400 320" accessibilityRole="image" accessibilityLabel={label} {...props}>
       <Circle cx="60" cy="270" r="5" fill={BRAND_TEAL_LIGHT} />

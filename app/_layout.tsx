@@ -142,7 +142,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <HeroUINativeProvider>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ title: 'Pathfinder Berlin' }} />
+          <Stack.Screen name="(tabs)" options={{ title: 'Wegweisser' }} />
           <Stack.Screen name="reality" />
           <Stack.Screen name="student-priorities" />
           <Stack.Screen name="parent-priorities" />

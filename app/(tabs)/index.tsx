@@ -25,7 +25,12 @@ export default function Home() {
       >
         <View className="mx-auto min-h-full w-full max-w-3xl flex-1 justify-between gap-8">
           <View className="gap-7 pt-8">
-            <BrandLogo width={112} height={90} label="NextStufe logo" />
+            <View className="items-center self-start">
+              <BrandLogo width={112} height={90} label="Wegweisser logo" />
+              <Typography.Heading type="h4" className="text-foreground">
+                Wegweisser
+              </Typography.Heading>
+            </View>
             <View className="gap-3">
               <Typography.Paragraph
                 className="text-accent font-semibold tracking-widest uppercase"

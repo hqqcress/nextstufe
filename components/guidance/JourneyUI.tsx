@@ -35,7 +35,12 @@ export function JourneyScreen({
           <Button variant="ghost" onPress={() => goBackOrReplace(routes.home)} className="px-0">
             <Button.Label>Back</Button.Label>
           </Button>
-          <BrandLogo width={50} height={40} label="NextStufe home" />
+          <View className="flex-row items-center gap-2">
+            <BrandLogo width={42} height={34} label="Wegweisser home" />
+            <Typography.Paragraph className="text-foreground font-semibold">
+              Wegweisser
+            </Typography.Paragraph>
+          </View>
         </View>
         <View className="gap-2">
           {eyebrow ? (
