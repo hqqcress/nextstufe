@@ -268,8 +268,7 @@ export const pathways: PathwayCard[] = [
     focus: 'Abitur with a vocational focus such as technology, business, or health/social care',
     clarification:
       'A stronger subject focus can reduce breadth; ask how binding the chosen field is.',
-    resourceUrl:
-      'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/berufliches-gymnasium/',
+    resourceUrl: 'https://www.berlin.de/sen/bildung/schule/bildungswege/berliner-schulsystem/',
   },
   {
     id: 'ausbildung',
@@ -277,7 +276,7 @@ export const pathways: PathwayCard[] = [
     focus: 'Practical professional route, potentially with further qualifications later',
     clarification:
       'Ask which qualification is earned and what later progression routes are documented.',
-    resourceUrl: 'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/',
+    resourceUrl: 'https://www.berlin.de/sen/bildung/schule-und-beruf/duale-ausbildung/',
   },
 ];
 

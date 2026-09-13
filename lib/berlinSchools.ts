@@ -67,11 +67,10 @@ const PUBLIC_SCHOOL_OPERATOR = 'öffentlich';
 const SCHOOL_DIRECTORY_URL = 'https://www.bildung.berlin.de/Schulverzeichnis/';
 
 const PATHWAY_REQUIREMENTS: Record<PathwayId, string> = {
-  oberstufe:
-    'https://www.berlin.de/sen/bildung/schule/bildungswege/gymnasium/gymnasiale-oberstufe/',
+  oberstufe: 'https://www.berlin.de/sen/bildung/schule/bildungswege/gymnasium/',
   'berufliches-gymnasium':
-    'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/berufliches-gymnasium/',
-  ausbildung: 'https://www.berlin.de/sen/bildung/schule-und-beruf/berufliche-bildung/berufsschule/',
+    'https://www.berlin.de/sen/bildung/schule/bildungswege/berliner-schulsystem/',
+  ausbildung: 'https://www.berlin.de/sen/bildung/schule-und-beruf/duale-ausbildung/',
 };
 
 const PATHWAY_PROGRAMMES: Record<PathwayId, string> = {
