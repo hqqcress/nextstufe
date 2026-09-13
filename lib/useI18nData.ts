@@ -1,14 +1,16 @@
 import { useTranslation } from 'react-i18next';
 
 import type { RecommendedSchool } from '@/lib/berlinSchools';
+import i18n, { type AppLanguage } from '@/lib/i18n';
 
 export function useI18nData() {
   const { t } = useTranslation();
 
-  function recommendedSchoolText(school: RecommendedSchool) {
+  function recommendedSchoolText(school: RecommendedSchool, language?: AppLanguage) {
+    const translate = language ? i18n.getFixedT(language) : t;
     const category = school.schoolType || school.schoolCategory;
     const homePostcode = school.matches[1]?.match(/as (\d{5})\.$/)?.[1];
-    const translatedQuestions = t(`recommendation.questions.${school.pathwayId}`, {
+    const translatedQuestions = translate(`recommendation.questions.${school.pathwayId}`, {
       returnObjects: true,
     });
     const questions = Array.isArray(translatedQuestions)
@@ -16,17 +18,17 @@ export function useI18nData() {
       : [];
 
     return {
-      programme: t(`recommendation.programme.${school.pathwayId}`),
+      programme: translate(`recommendation.programme.${school.pathwayId}`),
       sourceDate: school.schoolYear
-        ? t('recommendation.sourceYear', { year: school.schoolYear })
-        : t('recommendation.source'),
+        ? translate('recommendation.sourceYear', { year: school.schoolYear })
+        : translate('recommendation.source'),
       matches: [
-        t('recommendation.classified', { category }),
+        translate('recommendation.classified', { category }),
         homePostcode
-          ? t('recommendation.samePostcode', { postcode: homePostcode })
-          : t('recommendation.proximity'),
+          ? translate('recommendation.samePostcode', { postcode: homePostcode })
+          : translate('recommendation.proximity'),
       ],
-      mismatches: [t('recommendation.limitation')],
+      mismatches: [translate('recommendation.limitation')],
       missingInformation: questions,
     };
   }

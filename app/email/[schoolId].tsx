@@ -78,15 +78,16 @@ function EmailComposer({
   onContinue: () => void;
 }) {
   const { t } = useTranslation();
+  const { t: germanT } = useTranslation(undefined, { lng: 'de' });
   const { recommendedSchoolText } = useI18nData();
-  const questions = recommendedSchoolText(school)
+  const questions = recommendedSchoolText(school, 'de')
     .missingInformation.map((item) => `- ${item}`)
     .join('\n');
   const draft = {
-    subject: t('email.subject', { school: school.name }),
-    body: t('email.body', {
+    subject: germanT('email.subject', { school: school.name }),
+    body: germanT('email.body', {
       school: school.name,
-      student: studentName || t('email.child'),
+      student: studentName || germanT('email.child'),
       questions,
     }),
   };
