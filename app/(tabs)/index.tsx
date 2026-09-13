@@ -11,6 +11,7 @@ export default function Home() {
   const profile = useGuidanceStore((state) => state.profile);
   const setProfileField = useGuidanceStore((state) => state.setProfileField);
   const [accent] = useThemeColor(['accent']);
+  const studentName = profile.studentName.trim();
 
   return (
     <KeyboardAvoidingView
@@ -33,20 +34,41 @@ export default function Home() {
               >
                 Berlin school pathway guide
               </Typography.Paragraph>
-              <Typography.Heading type="h1">Make the next school step clearer.</Typography.Heading>
+              <Typography.Heading type="h1">
+                {studentName
+                  ? `Let’s make ${studentName}’s next school step clearer.`
+                  : 'Let’s make the next school step clearer.'}
+              </Typography.Heading>
               <Typography.Paragraph color="muted">
-                A calm, source-aware prototype for students and parents to compare realistic
-                education pathways together.
+                Start with a first name and Berlin postcode, then compare realistic education
+                pathways together.
               </Typography.Paragraph>
             </View>
             <Card className="border-border bg-surface border">
               <Card.Body className="gap-4 p-5">
                 <View className="flex-row items-center gap-3">
                   <ShieldCheck color={accent} size={21} />
-                  <Typography.Heading type="h4">Start with your area</Typography.Heading>
+                  <Typography.Heading type="h4">Tell us who this is for</Typography.Heading>
                 </View>
                 <TextField>
-                  <Label>Berlin postcode</Label>
+                  <Label>Student’s first name</Label>
+                  <Input
+                    value={profile.studentName}
+                    onChangeText={(value) => setProfileField('studentName', value)}
+                    placeholder="For example, Alex"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    textContentType="givenName"
+                  />
+                </TextField>
+                <Typography.Paragraph type="body-sm" color="muted">
+                  A first name is enough. It stays in this guidance journey.
+                </Typography.Paragraph>
+                <View className="bg-border h-px" />
+                <TextField>
+                  <Label>
+                    {studentName ? `${studentName}’s Berlin postcode` : 'Berlin postcode'}
+                  </Label>
                   <Input
                     value={profile.postcode}
                     onChangeText={(value) =>
@@ -67,7 +89,7 @@ export default function Home() {
             <Button
               variant="primary"
               onPress={() => router.push(routes.reality)}
-              isDisabled={profile.postcode.length !== 5}
+              isDisabled={!studentName || profile.postcode.length !== 5}
             >
               <Button.Label>Start reality check</Button.Label>
             </Button>

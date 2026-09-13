@@ -11,6 +11,7 @@ export interface Option {
 }
 
 export interface Profile {
+  studentName: string;
   postcode: string;
   schoolType: string;
   transitionStatement: string;
@@ -479,6 +480,7 @@ export const schools: DemoSchool[] = [
 ];
 
 export const demoProfile: Profile = {
+  studentName: '',
   postcode: '10115',
   schoolType: 'iss',
   transitionStatement: 'may-be-eligible',

@@ -44,7 +44,11 @@ export default function ProfileScreen() {
   return (
     <JourneyScreen
       eyebrow="Step 4 of 4"
-      title="Your shared profile"
+      title={
+        profile.studentName.trim()
+          ? `${profile.studentName.trim()}’s shared profile`
+          : 'Your shared profile'
+      }
       description="Student and parent priorities stay separate, then meet in a shared comparison."
       footer={
         <Button variant="primary" onPress={() => router.push(routes.pathways)}>
@@ -54,7 +58,11 @@ export default function ProfileScreen() {
     >
       <Card className="border-border bg-surface border">
         <Card.Body className="gap-4 p-5">
-          <Typography.Heading type="h4">Student priorities</Typography.Heading>
+          <Typography.Heading type="h4">
+            {profile.studentName.trim()
+              ? `${profile.studentName.trim()}’s priorities`
+              : 'Student priorities'}
+          </Typography.Heading>
           <View className="flex-row flex-wrap gap-2">
             {studentChips.map((chip) => (
               <ProfileChip key={chip} label={chip} kind="student" />
