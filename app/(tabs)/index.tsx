@@ -1,9 +1,10 @@
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Button, Card, Input, Label, TextField, Typography } from 'heroui-native';
 import { router } from 'expo-router';
-import { Compass, ShieldCheck } from 'lucide-react-native';
+import { ShieldCheck } from 'lucide-react-native';
 import { useThemeColor } from 'heroui-native';
 
+import { BrandLogo } from '@/components/BrandLogo';
 import { useGuidanceStore } from '@/lib/guidanceStore';
 import { routes } from '@/lib/routes';
 
@@ -24,9 +25,7 @@ export default function Home() {
       >
         <View className="mx-auto min-h-full w-full max-w-3xl flex-1 justify-between gap-8">
           <View className="gap-7 pt-8">
-            <View className="bg-accent-soft h-14 w-14 items-center justify-center rounded-2xl">
-              <Compass color={accent} size={28} />
-            </View>
+            <BrandLogo width={112} height={90} label="NextStufe logo" />
             <View className="gap-3">
               <Typography.Paragraph
                 className="text-accent font-semibold tracking-widest uppercase"

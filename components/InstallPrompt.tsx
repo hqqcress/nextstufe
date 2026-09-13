@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Text } from 'heroui-native';
 
+import { BrandLogo } from '@/components/BrandLogo';
+
 /**
  * Install affordance for the PWA, web only:
  * - Android/Chrome: captures `beforeinstallprompt` and shows an "Install" button
@@ -116,9 +118,10 @@ export function InstallPrompt() {
         style={{ bottom }}
         className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
+        <BrandLogo width={42} height={34} label="NextStufe logo" />
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">
-            Add to home screen
+            Add NextStufe to home screen
           </Text.Paragraph>
           <Text.Paragraph type="body-xs" color="muted">
             Install this app for a full-screen experience
@@ -152,9 +155,10 @@ export function InstallPrompt() {
         style={{ bottom }}
         className="border-border bg-card absolute right-4 left-4 z-50 flex-row items-center gap-3 rounded-lg border p-4 shadow-lg"
       >
+        <BrandLogo width={42} height={34} label="NextStufe logo" />
         <View className="flex-1">
           <Text.Paragraph type="body-sm" weight="semibold">
-            Add to home screen
+            Add NextStufe to home screen
           </Text.Paragraph>
           <Text.Paragraph type="body-xs" color="muted">
             Tap Share, then “Add to Home Screen” to install this app

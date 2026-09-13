@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Button, Card, PressableFeedback, Typography } from 'heroui-native';
 import { useRouter } from 'expo-router';
 
+import { BrandLogo } from '@/components/BrandLogo';
 import { cn } from '@/lib/utils';
 import { goBackOrReplace } from '@/lib/navigation';
 import { routes } from '@/lib/routes';
@@ -30,13 +31,12 @@ export function JourneyScreen({
         contentContainerClassName="w-full max-w-3xl self-center gap-6 px-5 pb-6 pt-safe-or-6"
         keyboardShouldPersistTaps="handled"
       >
-        <Button
-          variant="ghost"
-          onPress={() => goBackOrReplace(routes.home)}
-          className="self-start px-0"
-        >
-          <Button.Label>Back</Button.Label>
-        </Button>
+        <View className="flex-row items-center justify-between">
+          <Button variant="ghost" onPress={() => goBackOrReplace(routes.home)} className="px-0">
+            <Button.Label>Back</Button.Label>
+          </Button>
+          <BrandLogo width={50} height={40} label="NextStufe home" />
+        </View>
         <View className="gap-2">
           {eyebrow ? (
             <Typography.Paragraph
